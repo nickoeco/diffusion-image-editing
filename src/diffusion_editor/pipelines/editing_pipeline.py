@@ -16,6 +16,7 @@ from diffusion_editor.models.text_encoder import TextEncoderWrapper
 from diffusion_editor.models.vae import VAEWrapper
 from diffusion_editor.pipelines.conditioning import encode_conditioning
 from diffusion_editor.utils.image_utils import image_to_tensor
+from diffusion_editor.diffusion.refinement import validate_refinement
 
 
 @dataclass(frozen=True)
@@ -43,14 +44,17 @@ class EditingPipeline:
                     guidance_scale: float = 7.5, num_steps: int = 50, *,
                     inversion_guidance_scale: float = 1.0,
                     negative_prompt: str | Sequence[str] = "",
-                    return_trajectory: bool = False) -> GlobalEditingResult:
+                    return_trajectory: bool = False, inversion_refinement_steps: int = 0,
+                    inversion_refinement_tolerance: float = 1e-6) -> GlobalEditingResult:
         """Invert with source, select stored level, sample source and target controls.
 
         Both reverse branches use the same selected latent, schedule and guidance.
         Strength 0 returns VAE-only images and skips inversion/U-Net entirely.
         This method has no spatial preservation or pixel compositing guarantee.
+        Refinement is opt-in here to preserve the measured Phase 4 editing baseline.
         """
         original = image_to_tensor(image).detach().clone()
+        validate_refinement(inversion_refinement_steps, inversion_refinement_tolerance)
         schedule = DDIMSchedule.from_scheduler(self.backend.scheduler, num_steps)
         selection = select_edit_start(schedule, strength)
         batch_size = original.shape[0]
@@ -63,7 +67,10 @@ class EditingPipeline:
                                               guidance_scale, batch_size)
         clean = self.vae.encode_image(original)
         vae_image = self.vae.decode_latents(clean)
-        inversion = (DDIMInverter(schedule, self.predict_noise).invert(clean, source_inversion, inversion_guidance_scale)
+        inversion = (DDIMInverter(schedule, self.predict_noise).invert(
+                         clean, source_inversion, inversion_guidance_scale,
+                         refinement_steps=inversion_refinement_steps,
+                         refinement_tolerance=inversion_refinement_tolerance)
                      if selection.reverse_steps else None)
         start = clean if inversion is None else inversion.trajectory[selection.start_timestep].to(self.backend.device)
         sampler = DDIMSampler(schedule, self.predict_noise)

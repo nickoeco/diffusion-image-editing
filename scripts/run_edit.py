@@ -23,6 +23,8 @@ def main() -> None:
     parser.add_argument("--guidance-scale", type=float, default=7.5)
     parser.add_argument("--inversion-guidance-scale", type=float, default=1.0)
     parser.add_argument("--negative-prompt", default="")
+    parser.add_argument("--refinement-steps", type=int, default=0, help="Optional source inversion residual evaluations")
+    parser.add_argument("--refinement-tolerance", type=float, default=1e-6)
     parser.add_argument("--save-trajectories", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/editing/phase4"))
     args = parser.parse_args()
@@ -50,7 +52,9 @@ def main() -> None:
         result = editor.edit_global(image, args.source_prompt, args.target_prompt, args.strength,
                                     args.guidance_scale, args.steps,
                                     inversion_guidance_scale=args.inversion_guidance_scale,
-                                    negative_prompt=args.negative_prompt, return_trajectory=args.save_trajectories)
+                                    negative_prompt=args.negative_prompt, return_trajectory=args.save_trajectories,
+                                    inversion_refinement_steps=args.refinement_steps,
+                                    inversion_refinement_tolerance=args.refinement_tolerance)
     if backend.device == "cuda":
         torch.cuda.synchronize()
     elapsed = time.perf_counter() - started
@@ -75,6 +79,10 @@ def main() -> None:
               "source_prompt": args.source_prompt, "target_prompt": args.target_prompt,
               "negative_prompt": args.negative_prompt, "num_steps": args.steps,
               "inversion_guidance_scale": args.inversion_guidance_scale, "guidance_scale": args.guidance_scale,
+              "inversion_method": "residual_refined_ddim" if args.refinement_steps else "plain_ddim",
+              "refinement_steps": args.refinement_steps, "refinement_tolerance": args.refinement_tolerance,
+              "refinement_diagnostics": {str(t): asdict(d) for t, d in result.inversion.refinement.items()}
+                  if result.inversion and result.inversion.refinement else None,
               "selection": asdict(result.selection) | {"noise_std": result.selection.noise_std},
               "inversion_steps_executed": args.steps if result.inversion else 0,
               "inversion_timesteps": result.inversion.timesteps if result.inversion else None,

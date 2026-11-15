@@ -24,6 +24,7 @@ def test_cached_global_editing_strength_and_prompt_controls():
     torch.testing.assert_close(first.edited_image, repeated.edited_image)
     assert not torch.allclose(first.edited_image, first.source_reconstruction)
     full = editor.edit_global(image, source, source, 1, 1, 4)
-    reconstruction = ReconstructionPipeline(backend).reconstruct(image, source, 4, 1)
+    reconstruction = ReconstructionPipeline(backend).reconstruct(image, source, 4, 1,
+                                                                inversion_refinement_steps=0)
     torch.testing.assert_close(full.edited_image, full.source_reconstruction)
     torch.testing.assert_close(full.edited_image, reconstruction.ddim_reconstruction)

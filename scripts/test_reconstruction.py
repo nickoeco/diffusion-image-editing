@@ -1,6 +1,7 @@
 """Cached-model same-prompt reconstruction, metrics and optional latent previews."""
 import argparse
 import csv
+from dataclasses import asdict
 import hashlib
 import json
 import math
@@ -20,6 +21,9 @@ def main() -> None:
     parser.add_argument("--guidance-scale", type=float, default=1.0)
     parser.add_argument("--inversion-guidance-scale", type=float, default=1.0)
     parser.add_argument("--negative-prompt", default="")
+    parser.add_argument("--refinement-steps", type=int, default=12,
+                        help="Destination residual evaluations per inversion step; 0 selects original DDIM")
+    parser.add_argument("--refinement-tolerance", type=float, default=1e-6)
     parser.add_argument("--save-intermediates", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/reconstruction/phase3"))
     args = parser.parse_args()
@@ -47,7 +51,9 @@ def main() -> None:
         result = pipeline.reconstruct(image, args.source_prompt, args.steps, args.guidance_scale,
                                       inversion_guidance_scale=args.inversion_guidance_scale,
                                       negative_prompt=args.negative_prompt,
-                                      return_trajectory=args.save_intermediates)
+                                      return_trajectory=args.save_intermediates,
+                                      inversion_refinement_steps=args.refinement_steps,
+                                      inversion_refinement_tolerance=args.refinement_tolerance)
     if backend.device == "cuda":
         torch.cuda.synchronize()
     elapsed = time.perf_counter() - started
@@ -74,11 +80,26 @@ def main() -> None:
         save_image_grid(previews, labels, args.output_dir / "latent_previews.png")
         torch.save({"inversion": dict(result.inversion.trajectory), "sampling": dict(result.sampling.trajectory)},
                    args.output_dir / "trajectories.pt")
+    diagnostics = result.fidelity_check.candidate_refinement if result.fidelity_check else result.inversion.refinement
     report = {"config": config.to_dict(), "source_image": str(args.image),
               "source_image_sha256": hashlib.sha256(args.image.read_bytes()).hexdigest(),
               "source_prompt": args.source_prompt, "negative_prompt": args.negative_prompt,
               "num_steps": args.steps, "guidance_scale": args.guidance_scale,
               "inversion_guidance_scale": args.inversion_guidance_scale,
+              "inversion_method": result.fidelity_check.selected_method if result.fidelity_check else "plain_ddim",
+              "refinement_steps": args.refinement_steps, "refinement_tolerance": args.refinement_tolerance,
+              "candidate_refinement_diagnostics": {str(t): asdict(d) for t, d in diagnostics.items()}
+                  if diagnostics is not None else None,
+              "fidelity_check": {"selected_method": result.fidelity_check.selected_method,
+                                  "refined_latent_mse": result.fidelity_check.refined_latent_mse,
+                                  "plain_latent_mse": result.fidelity_check.plain_latent_mse}
+                  if result.fidelity_check else None,
+              "refinement_summary": {
+                  "destination_evaluations": sum(d.evaluations for d in diagnostics.values()),
+                  "converged_levels": sum(d.converged for d in diagnostics.values()),
+                  "total_levels": len(diagnostics),
+                  "max_final_rms": max(d.final_rms for d in diagnostics.values()),
+              } if diagnostics else None,
               "inversion_timesteps": result.inversion.timesteps, "reverse_timesteps": result.sampling.timesteps,
               "clean_boundary": {"id": -1, "alpha": 1.0}, "metrics": metrics,
               "metric_settings": {"data_range": 1, "color": "RGB", "ssim_window": 7,
