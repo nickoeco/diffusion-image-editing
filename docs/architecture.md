@@ -68,3 +68,30 @@ execution and returns VAE-only output with `inversion=None` and clean-only sampl
 histories. For positive strength, the full source trajectory remains available.
 `pipelines/conditioning.py` shares validated B/2B prompt preparation between the
 reconstruction and editing pipelines. The global API has no mask or blending step.
+
+## Reconstruction-fidelity repair (before Phase 5)
+
+`diffusion/refinement.py` numerically corrects an inverted candidate against the
+same reverse DDIM function used by sampling. It uses inference-only, FP32 residual
+arithmetic, a fixed U-Net evaluation budget, optional early stopping and best-point
+acceptance with damping. `DDIMInverter` defaults to plain DDIM and exposes this
+option explicitly; returned per-level diagnostics record initial/final RMS,
+evaluation counts and convergence status. Initial prediction IDs retain their
+existing meaning; extra destination queries are represented by these diagnostics.
+
+`ReconstructionPipeline` defaults to 12 residual evaluations and RMS tolerance
+1e-6, then compares the refined and plain *independently sampled* roundtrip latents
+against the VAE-encoded source. It returns the lower-latent-MSE candidate and a
+`ReconstructionFidelityCheck` containing the selection, both errors and candidate
+refinement diagnostics, including when plain DDIM is selected. Local residual
+improvement alone cannot justify accepting a global result. Original image pixels
+are used for VAE encoding/evaluation; sampling consumes terminal latent and text.
+
+The global editor exposes refinement as opt-in (default zero), preserving its
+measured baseline and matched source/target comparison. Refinement targets the
+source inversion settings; different reverse guidance or target text is a changed
+mapping and does not inherit a source reconstruction guarantee. Target edits
+intentionally change semantics, so original-latent MSE would penalize desired
+modifications. The repair performs no model training, new checkpoint loading,
+source-trajectory replay in sampling or pixel compositing
+in this repair. Phase 5 remains unstarted while fidelity is reviewed.

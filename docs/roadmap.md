@@ -20,5 +20,8 @@ Phase 3 adds manual CFG, shared eta=0 arithmetic, reverse sampling, same-prompt
 reconstruction, PSNR/SSIM, labelled previews and measured smoke results.
 Phase 4 adds discrete stored-level strength selection, partial reverse sampling,
 source/target global editing, matched same-prompt controls and real smoke results.
-Phase 5 has not started. See the phase status records for
+Current priority is reconstruction drift: diagnose model-dependent local residuals,
+validate numerical correction against the plain baseline, and retain adverse-case
+fallback/regression tests. Phase 5 has not started and is deferred while fidelity
+is reviewed. See `reconstruction-drift.md` and the phase status records for
 executed verification and AGENTS.md for binding constraints and test acceptance details.

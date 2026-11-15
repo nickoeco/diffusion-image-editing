@@ -3,6 +3,14 @@
 Reconstruction smoke metrics are available from Phase 3. No formal ablation suite,
 editing evaluation or baseline comparison has been completed.
 
+The subsequent [reconstruction-drift investigation](reconstruction-drift.md)
+records controlled query-time/step-count/precision probes and the final residual
+correction. At guidance 1/1, the repaired 50-step reconstruction matches the
+VAE-level baseline on the two recorded natural images. The historical Phase 3/4
+tables below remain unchanged as baseline evidence. Guidance 3/3 still triggers
+plain-DDIM fallback in the strict final run. These diagnostics do not replace the
+planned formal editing evaluation or establish a general quality improvement.
+
 Phase 1 produced an unscored VAE-only smoke comparison at
 `outputs/reconstruction/phase1/comparison.png`, using the real pretrained VAE and a
 deterministic synthetic test card. Its configuration and environment are recorded

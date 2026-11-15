@@ -184,6 +184,55 @@ Optional intermediate previews decode selected raw latent states and are labelle
 with stage/timestep; noisy previews are not x0 predictions or final reconstruction.
 Real smoke results and limitations are recorded in `phase3-status.md`.
 
+## Residual-refined inversion and reconstruction selection (implemented repair)
+
+Plain inversion estimates the next noisy state with a noise prediction at the
+current state. The next-state prediction can differ, so applying a mathematically
+correct reverse step need not recover the previous state. Fixed-epsilon unit tests
+cannot reveal this model-dependent discrepancy. Diagnostic runs localize a large
+error near the 21 -> 1 reverse transition on the measured 50-step natural image.
+
+For inversion from source level t to noisier level s, write the actual reverse map:
+
+```text
+R_s(z) = a*z + b*epsilon_theta(z,s,c)
+a = sqrt(alpha_bar_t / alpha_bar_s)
+b = sqrt(1-alpha_bar_t) - a*sqrt(1-alpha_bar_s)
+r(z) = R_s(z) - z_t
+proposal = z - damping*r(z)/a
+```
+
+`diffusion/refinement.py::refine_inversion_step` implements this fixed-point residual
+correction. The first candidate is the plain DDIM estimate. Every evaluated trial
+is measured through the unchanged reverse equation at the actual destination
+timestep s. The best evaluated point is retained; a non-improving trial halves
+damping and restarts from the best point. Unevaluated proposals are never returned.
+The budget counts all destination U-Net evaluations, including the initial check.
+RMS is over the complete BCHW tensor in scaled latent units. No parameters or text
+embeddings are optimized, and no autograd graph is built.
+
+`DDIMInverter.invert(refinement_steps=0)` retains the original approximation.
+Nonzero budgets attach per-timestep `RefinementDiagnostics`; defaults in the
+reconstruction pipeline are 12 evaluations and tolerance 1e-6. Budget exhaustion
+is reported explicitly and does not imply convergence. FP16 model rounding can
+limit residual convergence despite FP32 coefficient/correction arithmetic.
+
+Local improvement is not global monotonicity. A four-step CFG stress test found a
+worse final candidate despite local corrections. `ReconstructionPipeline` therefore
+also runs the plain path, evaluates both final roundtrip latents against the same
+clean VAE latent, and selects the lower MSE. The returned fidelity check preserves
+both errors and the refined candidate's diagnostics even on plain-DDIM fallback.
+This guarantees no regression for that measured latent-MSE objective, not arbitrary
+pixel/perceptual metrics or general editing quality. Both candidate images come
+from the unchanged sampler and VAE decoder. Source pixels/trajectory states are
+not substituted into reverse updates.
+
+The implicit-equation view and fixed-point approach are standard numerical ideas;
+see the [research-author explanation](https://developer.nvidia.com/blog/fast-inversion-for-real-time-image-editing-with-text/).
+This project implements a small damped, budgeted correction, not RNRI, learned
+inversion or null-text optimization. See `reconstruction-drift.md` for controls,
+failed probes, actual measurements and runtime costs.
+
 ## Editing strength and global editing (implemented)
 
 `editing/strength.py::select_edit_start` validates a finite strength in [0,1] and

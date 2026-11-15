@@ -10,6 +10,12 @@ follow [AGENTS.md](AGENTS.md).
 Project documentation is maintained in English. Workflow communication may use
 English, Chinese, or both.
 
+Current priority: reconstruction-fidelity repair before Phase 5. Reconstruction
+now defaults to budgeted residual-refined DDIM with an end-to-end latent-error
+selection check. Plain DDIM remains available for teaching and controlled baselines.
+See [the drift investigation](docs/reconstruction-drift.md) for measured evidence,
+the computational trade-off and known failure cases.
+
 ## Installation (PowerShell, repository root)
 
 Python 3.11 is recommended; supported versions are 3.10–3.12. Development and model
@@ -199,7 +205,8 @@ from diffusion_editor.evaluation.metrics import reconstruction_metrics
 with Image.open("assets/examples/astronaut.png") as image:
     result = ReconstructionPipeline(backend).reconstruct(
         image, "a portrait of an astronaut wearing a spacesuit", num_steps=50,
-        guidance_scale=1.0, inversion_guidance_scale=1.0, return_trajectory=True)
+        guidance_scale=1.0, inversion_guidance_scale=1.0, return_trajectory=True,
+        inversion_refinement_steps=12, inversion_refinement_tolerance=1e-6)
 metrics = reconstruction_metrics(result.original, result.ddim_reconstruction)
 ```
 
@@ -221,6 +228,23 @@ uses only cached model weights. Quality is measured on floating RGB [0,1] before
 uint8 saving; SSIM uses uniform 7×7 windows, channel averaging and sample covariance.
 Exact-match PSNR is infinite in the library and encoded as null in strict JSON.
 See [Phase 3 results](docs/phase3-status.md) for measured reconstruction drift.
+
+The historical Phase 3 report describes the original approximate inversion.
+The current reconstruction default refines each inversion step against the actual
+reverse-step residual, up to 12 destination U-Net evaluations, with RMS tolerance
+1e-6. It also runs plain inversion/reconstruction and selects the lower VAE-latent
+roundtrip MSE; selection and candidate residual diagnostics are saved in the report.
+Both candidates are genuinely reverse-sampled from their terminal latents. This
+adds computation and does not eliminate the VAE bottleneck's loss.
+
+Use `--refinement-steps 0` (or `inversion_refinement_steps=0` in Python) to reproduce
+the original DDIM baseline. `--refinement-tolerance` controls early stopping.
+Start with matching inversion/sampling guidance 1/1. A per-step correction is not
+a guarantee for every grid or guidance setting, so the reconstruction selection
+check remains enabled whenever refinement is requested. The global editing API
+keeps its measured plain-DDIM default; `run_edit.py --refinement-steps 12` opts into
+source refinement, without the reconstruction-only selection check or an editing
+preservation guarantee when target conditioning differs.
 
 ## Phase 4: global text-guided editing
 
@@ -279,6 +303,7 @@ verification is tracked separately in the phase status records. DDIM inversion i
 approximate, and the VAE introduces reconstruction error. Latent masks cannot
 guarantee exact pixel preservation; final pixel compositing will be independently
 configurable. Project completion is governed by the definition of done in AGENTS.md.
-The natural-image smoke shows substantial DDIM reconstruction drift; passing
-equation tests does not imply faithful appearance recovery. No editing quality,
+The historical plain-DDIM natural-image smoke shows substantial reconstruction
+drift. Residual refinement addresses the measured cases, with an explicit fallback
+for adverse roundtrips; passing equation tests alone does not imply fidelity. No editing quality,
 general improvement or completed Phase 7 ablation is claimed.
