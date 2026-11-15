@@ -3,6 +3,17 @@
 These instructions apply to the entire repository and all future changes. Preserve
 existing work. Explain major architectural or dependency changes before making them.
 
+## Documentation and workflow language
+
+- Write and maintain all project documentation in English, including README files,
+  files under `docs/`, architectural notes, implementation explanations, experiment
+  reports and these repository instructions. Apply this rule to existing documents
+  and all future documentation additions or updates.
+- Workflow communication may use English, Chinese or a mixture of both, including
+  discussions, progress updates and development coordination with the user.
+- Keep documentation artifacts in English even when the surrounding workflow
+  communication is in Chinese or bilingual.
+
 ## Scope and implementation constraints
 
 - Build an educational, implementation-focused Stable Diffusion image editor in
