@@ -1,0 +1,3 @@
+# Install the CUDA/CPU torch wheels first; see README. Later-phase libraries
+# (Gradio, OpenCV, metrics/plotting) are deliberately deferred.
+-e .[model,dev]
