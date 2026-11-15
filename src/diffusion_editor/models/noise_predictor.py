@@ -1,4 +1,4 @@
-"""A conditional-only U-Net adapter; DDIM arithmetic stays outside this module."""
+"""Raw conditioned U-Net execution; CFG and DDIM arithmetic stay outside."""
 from typing import Any
 
 import torch

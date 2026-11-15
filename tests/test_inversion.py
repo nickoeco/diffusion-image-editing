@@ -74,7 +74,7 @@ def test_inverter_input_errors_and_failed_model():
     schedule = DDIMSchedule(torch.full((5,), 0.01), (4, 1))
     inverter = DDIMInverter(schedule, lambda z, t, e: z)
     z, e = torch.zeros(1, 4, 2, 2), torch.ones(1, 3, 5)
-    for kwargs in ({"guidance_scale": 7.5}, {"source_embeddings": torch.ones(2, 3, 5)},
+    for kwargs in ({"guidance_scale": 7.5}, {"source_embeddings": torch.ones(3, 3, 5)},
                    {"source_embeddings": e.long()}, {"latents": torch.full_like(z, float("inf"))}):
         with pytest.raises(ValueError):
             inverter.invert(**({"latents": z, "source_embeddings": e} | kwargs))
