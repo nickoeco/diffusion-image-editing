@@ -12,5 +12,7 @@
 | 7 | Reproducible evaluation and baseline | At least two ablations executed, metrics, outputs, plots and limitations |
 
 Every phase follows explain -> implement -> test -> review -> summarize. Do not
-implement later-phase placeholders as if functional. Phase 1 requires a new user
-instruction. See AGENTS.md for binding constraints and test acceptance details.
+implement later-phase placeholders as if functional. Phase 1 was authorized and
+started on 2026-11-15; it adds VAE/text wrappers, offline tensor tests and explicit
+GPU/real-weight checks. Phase 2 has not started. See the phase status records for
+executed verification and AGENTS.md for binding constraints and test acceptance details.

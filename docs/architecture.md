@@ -21,7 +21,15 @@ combines the modules; evaluation and Gradio call that pipeline. Full Diffusers
 pipelines are confined to labelled reference/baseline scripts. No circular UI/model
 dependencies or generic plugin framework is needed.
 
+Phase 1 adds `VAEWrapper` and `TextEncoderWrapper` on top of this boundary.
+Image conversion lives in `utils/image_utils.py`; it does not resize or crop inputs.
+The wrappers accept pretrained components directly, allowing synthetic PyTorch
+models in offline tests without importing Diffusers or Transformers.
+`scripts/check_conditioning.py` orchestrates a real-weight smoke check and saving
+results, while model wrappers remain independent of file paths and UI state.
+
 Runtime policy: CUDA auto uses FP16 U-Net/CLIP, CPU uses FP32, VAE always uses FP32.
-Later wrappers cast their own inputs explicitly. Coefficients/critical math use FP32.
+The VAE wrapper casts its inputs explicitly; CLIP token IDs stay integer while
+output embeddings use the model dtype. Coefficients/critical math will use FP32.
 Trajectory memory retention and CPU offload remain decisions for the inversion phase,
 after measuring actual GPU memory rather than assuming unlimited resources.

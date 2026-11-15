@@ -2,8 +2,9 @@
 
 A Computer Vision course project using pretrained Stable Diffusion 1.5 with custom
 DDIM inversion, reverse sampling, Classifier-Free Guidance (CFG), and mask-guided
-latent blending. **Currently at Phase 0: project initialization. Image editing is
-not implemented yet.** All future changes must follow [AGENTS.md](AGENTS.md).
+latent blending. **Phase 1 adds deterministic VAE encoding/decoding and batched
+CLIP conditioning. Image editing is not implemented yet.** All future changes must
+follow [AGENTS.md](AGENTS.md).
 
 Project documentation is maintained in English. Workflow communication may use
 English, Chinese, or both.
@@ -15,18 +16,21 @@ dependencies are installed separately:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
 .\.venv\Scripts\python.exe -m pytest -q
 python scripts/check_environment.py --output outputs/environment.json
 ```
 
-Phase 0 offline tests require neither PyTorch, a GPU, nor model weights. Only
-PyYAML, pytest, and build tools are installed. Installing the project metadata does
-not establish that the full model dependency stack has been verified.
+The current offline suite uses real CPU PyTorch tensors and small synthetic models;
+it requires no GPU, pretrained weights, Diffusers, or Transformers. The `test` extra
+installs its tensor/image dependencies. The original Phase 0 tests needed only the
+lighter `dev` extra. Installing the project metadata alone does not verify the full
+model dependency stack. CUDA and real-weight tests require explicit opt-in flags.
 
 The model environment uses a pinned torch/torchvision pair and established library
-versions. Candidate installation commands for this machine's NVIDIA GPU follow;
-they download large runtime packages and have not yet been executed:
+versions. For NVIDIA GPU execution, install the CUDA wheels first instead of the
+CPU wheel above, then install the complete model stack:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
@@ -43,10 +47,12 @@ script to check the driver and actual PyTorch CUDA availability.
 
 Pinned versions include torch 2.5.1, torchvision 0.20.1, diffusers 0.35.1,
 transformers 4.44.2, accelerate 1.0.1, safetensors 0.6.2, huggingface-hub 0.34.4,
-and numpy 1.26.4. This is a candidate compatibility baseline; actual GPU/model
-compatibility still requires integration testing. Direct dependencies are pinned.
-A full transitive dependency lock should be generated after the model environment
-has been installed and verified; an unverified resolution is not a lockfile.
+and numpy 1.26.4. This combination passed Phase 1 CUDA component integration tests
+on the recorded machine; downstream DDIM/editing behavior remains unverified.
+Direct dependencies are pinned. A [tested Windows/Python 3.11/CUDA 12.4 constraints
+snapshot](configs/constraints-windows-py311-cu124.txt) records the installed versions.
+Use it with `pip install -c configs/constraints-windows-py311-cu124.txt -r requirements.txt`
+after installing the CUDA torch wheels. It is not a cross-platform lockfile.
 Gradio, OpenCV, plotting, and metric libraries will be introduced in their phases.
 
 ## Model setup and smoke checks
@@ -88,7 +94,7 @@ configuration also permits network access.
 configs/                  Explicit YAML configuration
 src/diffusion_editor/
   config.py               Configuration validation
-  models/sd_backend.py    Pretrained component loading (implemented)
+  models/                Component loading, VAE and CLIP wrappers (implemented)
   diffusion/              Planned: schedule, inversion, sampler, CFG
   editing/                Planned: mask, blending, editor
   pipelines/              Planned: reconstruction and editing orchestration
@@ -103,14 +109,53 @@ outputs/                  Runtime artifacts excluded from version control
 ```
 
 The demo, editing commands, and experiment commands are not implemented and cannot
-be run at this stage. See the [roadmap](docs/roadmap.md) for the development order
-and acceptance gates. Development pauses after Phase 0 until the user requests Phase 1.
+be run at this stage. See the [roadmap](docs/roadmap.md) for development gates.
+
+## Phase 1: VAE and text conditioning
+
+```python
+from PIL import Image
+from diffusion_editor.config import load_config
+from diffusion_editor.models.sd_backend import SDBackend
+from diffusion_editor.models.vae import VAEWrapper
+from diffusion_editor.models.text_encoder import TextEncoderWrapper
+
+backend = SDBackend.load(load_config("configs/default.yaml"))  # cached weights
+vae = VAEWrapper(backend.vae)
+text = TextEncoderWrapper(backend.tokenizer, backend.text_encoder)
+with Image.open("input.png") as image:
+    latent = vae.encode_image(image)
+reconstruction = vae.decode_latents(latent)  # RGB BCHW [0,1], on VAE device
+conditioning = text.encode_prompt_pair(["a red apple", "a blue apple"])
+# [2B,L,D]: all negative/unconditional embeddings, then all positive embeddings
+```
+
+Image dimensions must be divisible by the configured VAE spatial factor. The
+wrapper never silently resizes/crops; latent scaling comes from VAE configuration.
+Posterior mode makes repeated encoding deterministic while preserving VAE loss.
+Text prompts are padded/truncated to CLIP's token limit with a truncation warning.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/check_conditioning.py
+.\.venv\Scripts\python.exe scripts/check_conditioning.py --image input.png
+.\.venv\Scripts\python.exe -m pytest -q --run-gpu
+.\.venv\Scripts\python.exe -m pytest -q --run-integration --run-gpu
+```
+
+The first script defaults to a deterministic 512×512 synthetic test card, saving
+`original.png`, `vae_reconstruction.png`, labelled `comparison.png`, and configuration,
+device/dtype/shape/provenance/timing information in `report.json` under
+`outputs/reconstruction/phase1/`. This is a VAE baseline, not a DDIM reconstruction
+or a natural-image quality benchmark. Use `--image` to verify a real photograph.
+The script defaults to cached weights; downloads require `--allow-download`.
+Pytest integration checks always use local cache and never download weights.
+Executed checks, numerical caveats, and output paths are recorded in the
+[Phase 1 status report](docs/phase1-status.md).
 
 ## Known limitations
 
-No model weights, PyTorch installation, or real inference results are available
-yet. Offline mocks verify loading-interface contracts only; they do not verify
-CUDA, real checkpoint compatibility, or generation quality. DDIM inversion is
+Offline synthetic tests verify tensor contracts and equations; actual pretrained
+verification is tracked separately in the phase status records. DDIM inversion is
 approximate, and the VAE introduces reconstruction error. Latent masks cannot
 guarantee exact pixel preservation; final pixel compositing will be independently
 configurable. Project completion is governed by the definition of done in AGENTS.md.

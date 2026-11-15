@@ -2,6 +2,13 @@
 
 No experiments have been executed. No reconstruction/editing metrics are available.
 
+Phase 1 produced an unscored VAE-only smoke comparison at
+`outputs/reconstruction/phase1/comparison.png`, using the real pretrained VAE and a
+deterministic synthetic test card. Its configuration and environment are recorded
+in the adjacent `report.json`. This is a structural baseline rather than an
+ablation or a natural-image quality benchmark; no PSNR/SSIM or improvement claims
+are reported. See `phase1-status.md` for executed verification.
+
 Phase 7 will evaluate reconstruction at 20/50/100 steps; strength at
 0.25/0.50/0.75/1.0; guidance at 3/5/7.5/10; global versus latent blending versus
 feathering versus optional pixel compositing; and a clearly labelled Diffusers
