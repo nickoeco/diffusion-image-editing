@@ -1,7 +1,7 @@
 # Implementation status and mathematical contracts
 
-Phases 1–3 implement VAE/text conditioning, DDIM inversion, reverse sampling,
-manual CFG and same-prompt reconstruction.
+Phases 1–4 implement VAE/text conditioning, DDIM inversion, reverse sampling,
+manual CFG, reconstruction and global source/target prompt editing.
 `models/sd_backend.py::SDBackend.load` loads model configuration and weights;
 `resolve_runtime` selects device/dtype. Scheduler configuration is loaded with
 `DDIMScheduler.from_pretrained`; custom mathematics never calls its step method.
@@ -184,12 +184,61 @@ Optional intermediate previews decode selected raw latent states and are labelle
 with stage/timestep; noisy previews are not x0 predictions or final reconstruction.
 Real smoke results and limitations are recorded in `phase3-status.md`.
 
+## Editing strength and global editing (implemented)
+
+`editing/strength.py::select_edit_start` validates a finite strength in [0,1] and
+selects a stored level from `schedule.inversion_timesteps`:
+
+```text
+N = number of selected inference levels (excluding clean)
+k = ceil(strength * N)
+t_start = inversion_timesteps[k]
+noise_std = sqrt(1 - alpha_bar[t_start])
+```
+
+Decimal text arithmetic at the bin boundary avoids cases such as binary float
+`0.14*50=7.000000000000001` incorrectly selecting step 8 instead of 7. The selection
+stores the requested strength, actual reverse count, timestep and alpha. Strength
+maps to a discrete step count, not a linearly interpolated noise level. At 50 steps:
+
+| Strength | Reverse steps | Starting timestep |
+| --- | --- | --- |
+| 0 | 0 | -1 (clean) |
+| 0.25 | 13 | 241 |
+| 0.50 | 25 | 481 |
+| 0.75 | 38 | 741 |
+| 1 | 50 | 981 |
+
+`DDIMSampler.sample(..., start_timestep=t_start)` validates membership and uses the
+suffix of the shared descending grid. CLEAN gives a no-update result; a nonzero
+start uses its actual stored latent and ends at clean. It never adds arbitrary
+noise or substitutes an interpolated timestep.
+
+`EditingPipeline.edit_global` handles source and target conditioning independently.
+It inverts only with the source prompt, selects the exact stored state, and samples
+two branches from it: source-prompt control and target edit. The branches share
+reverse guidance and schedule, so the control exposes same-prompt drift at that
+strength rather than comparing an edit against an unrelated full-depth run.
+`pipelines/conditioning.py::encode_conditioning` provides shared batch validation
+and conditional B/CFG 2B preparation. Reconstruction retains its existing behavior.
+
+At strength 0, inversion is skipped (`inversion=None`); source and target sampling
+perform no U-Net calls and return the clean latent. Both decoded outputs equal the
+VAE baseline, not necessarily the original pixels. Positive strengths first execute
+the full N-step inversion and retain its trajectory, followed by k steps per reverse
+branch. The CLI's runtime includes the additional source-control branch.
+
+Tests check analytic constant-noise edits, independent conditioning, matched initial
+states, exact query IDs, invalid strengths/IDs, endpoints, full-strength equivalence
+to reconstruction, batch errors and repeatability. Real cached-model checks verify
+0/partial/full paths and source-vs-target differences, without asserting semantic
+success. Global editing has no spatial preservation guarantee.
+
 ## Later phases (not implemented)
 
 - Local blend: z_s = M*z_edit_s + (1-M)*z_source_s after updating t -> s (Phase 5).
   Look up source **s**, including the clean terminal state. Do not blend against t.
-- Strength must select a stored level and define endpoints and actual reverse step
-  count (Phase 4). Mask resizing must preserve original spatial alignment.
+- Mask resizing must preserve original spatial alignment (Phase 5).
 
 Each later phase must replace these planned descriptions with actual function references,
 tested timestep conventions, tensor contracts and evidence.

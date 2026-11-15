@@ -42,6 +42,41 @@ exact grids, environment, runtime and peak allocated memory. No mask or editing
 strength is used for reconstruction. This does not fulfill the two-ablation
 completion requirement. See `phase3-status.md` for validation details.
 
+## Phase 4 global editing smoke checks
+
+The global editing script stores a matched source-prompt control in addition to
+the target edit. Both branches use the exact same selected source latent, reverse
+guidance and step suffix. The following actually executed checks use 50 inversion
+steps (guidance 1), empty negative prompts and the pinned model with seed 42:
+
+| Input / target | Strength | Reverse guidance | Start ID / reverse steps | Edited vs original PSNR / SSIM |
+| --- | --- | --- | --- | --- |
+| Astronaut / blue spacesuit | 0.50 | 5.0 | 481 / 25 | 22.081 dB / 0.7738 |
+| Astronaut / blue spacesuit | 0.75 | 7.5 | 741 / 38 | 13.591 dB / 0.4953 |
+| Astronaut / monochrome photo | 0.75 | 7.5 | 741 / 38 | 13.924 dB / 0.5257 |
+| Coffee / blue ceramic cup | 0.75 | 7.5 | 741 / 38 | 20.252 dB / 0.5969 |
+| Coffee / pencil drawing | 1.00 | 7.5 | 981 / 50 | 9.921 dB / 0.3187 |
+
+Preservation scores are not prompt-alignment scores. Neither blue-color task
+reliably achieved the desired recoloring, and the monochrome portrait retained
+color. Strong settings produced more shape/appearance drift. These unsuccessful
+semantic outcomes are retained. The 400×600 coffee case also verifies non-square
+dimension preservation; its input has [CC0 provenance](../assets/examples/README.md).
+The full-depth pencil-drawing target visibly produced a grayscale pencil style,
+while its source-prompt control remained photographic. Cup geometry and surrounding
+details also changed. Its low preservation score is not a failed style-alignment
+metric; no quantitative prompt-alignment claim is made.
+
+Outputs and per-run prompts/configuration, input hash, selected alpha/noise level,
+exact state IDs, timings, environment and CSV/JSON metrics are in
+`outputs/editing/phase4/`, `phase4-strong/`, `phase4-monochrome/`, `phase4-coffee/`
+and `phase4-sketch/`.
+The first run includes full inversion and partial source/target trajectories.
+Changing both strength and guidance in these exploratory checks is not a controlled
+ablation. Formal experiments and general editing-quality claims remain pending.
+
+## Planned evaluation
+
 Phase 7 will evaluate reconstruction at 20/50/100 steps; strength at
 0.25/0.50/0.75/1.0; guidance at 3/5/7.5/10; global versus latent blending versus
 feathering versus optional pixel compositing; and a clearly labelled Diffusers

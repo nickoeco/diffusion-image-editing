@@ -54,3 +54,17 @@ original, VAE-only and DDIM images, plus inversion and optional sampling histori
 `evaluation/metrics.py` defines single-image RGB PSNR/SSIM independently;
 `scripts/test_reconstruction.py` handles reproducible runs, saving and previews.
 There is no editing mask, strength selection or target prompt in Phase 3.
+
+Phase 4 adds `editing/strength.py` for discrete level selection and
+`pipelines/editing_pipeline.py::EditingPipeline.edit_global` for source/target
+orchestration. The sampler accepts an explicit selected start ID and traverses
+only the suffix of the same reverse grid; an unknown ID fails. No timestep or
+coefficient is reconstructed from a strength float.
+
+Global editing encodes once, inverts with source conditioning, then looks up the
+selected source state by timestep. Source-control and target branches both start
+from that identical state with the same reverse settings. Strength 0 skips U-Net
+execution and returns VAE-only output with `inversion=None` and clean-only sampling
+histories. For positive strength, the full source trajectory remains available.
+`pipelines/conditioning.py` shares validated B/2B prompt preparation between the
+reconstruction and editing pipelines. The global API has no mask or blending step.

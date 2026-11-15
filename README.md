@@ -2,8 +2,8 @@
 
 A Computer Vision course project using pretrained Stable Diffusion 1.5 with custom
 DDIM inversion, reverse sampling, Classifier-Free Guidance (CFG), and mask-guided
-latent blending. **Phase 3 adds custom reverse DDIM sampling, manual CFG and
-same-prompt reconstruction with PSNR/SSIM. Image editing is not implemented yet.**
+latent blending. **Phase 4 adds global source-to-target prompt editing with
+trajectory-based strength selection and a matched source-prompt control.**
 All future changes must
 follow [AGENTS.md](AGENTS.md).
 
@@ -98,8 +98,8 @@ src/diffusion_editor/
   config.py               Configuration validation
   models/                Component loading, VAE and CLIP wrappers (implemented)
   diffusion/              Schedule, inversion, reverse sampler, manual CFG
-  editing/                Planned: mask, blending, editor
-  pipelines/              Same-prompt reconstruction; editing planned
+  editing/                Strength selection; mask and blending planned
+  pipelines/              Reconstruction and global source/target editing
   evaluation/             PSNR/SSIM; experiment orchestration planned
   demo/                   Planned: Gradio interface
   utils/                  Environment diagnostics and logging
@@ -110,8 +110,9 @@ assets/examples/          Future input examples with provenance and usage permis
 outputs/                  Runtime artifacts excluded from version control
 ```
 
-The demo, editing commands, and experiment commands are not implemented and cannot
-be run at this stage. See the [roadmap](docs/roadmap.md) for development gates.
+Global editing is available through `scripts/run_edit.py`. Local mask editing,
+the demo and formal experiment commands are not implemented. See the
+[roadmap](docs/roadmap.md) for development gates.
 
 ## Phase 1: VAE and text conditioning
 
@@ -220,6 +221,56 @@ uses only cached model weights. Quality is measured on floating RGB [0,1] before
 uint8 saving; SSIM uses uniform 7×7 windows, channel averaging and sample covariance.
 Exact-match PSNR is infinite in the library and encoded as null in strict JSON.
 See [Phase 3 results](docs/phase3-status.md) for measured reconstruction drift.
+
+## Phase 4: global text-guided editing
+
+```python
+from diffusion_editor.pipelines.editing_pipeline import EditingPipeline
+
+with Image.open("assets/examples/astronaut.png") as image:
+    result = EditingPipeline(backend).edit_global(
+        image,
+        source_prompt="a portrait of an astronaut wearing an orange spacesuit",
+        target_prompt="a portrait of an astronaut wearing a blue spacesuit",
+        strength=0.5, guidance_scale=5.0, num_steps=50,
+        inversion_guidance_scale=1.0, return_trajectory=True)
+edited = result.edited_image
+control = result.source_reconstruction  # Same selected latent and reverse guidance
+print(result.selection.start_timestep, result.selection.reverse_steps)
+```
+
+For N selected inference levels, strength chooses `k=ceil(strength*N)` and stored
+inversion level k. Decimal input boundaries are handled without float-rounding
+off-by-one errors. With N=50, strength 0.5 selects timestep 481 and 25 reverse steps;
+0.75 selects timestep 741 and 38 steps. This is not linear interpolation of timestep
+or noise variance. Strength 0 returns the VAE-only image and skips U-Net/inversion;
+it does not promise pixel identity to the original. Strength 1 uses the deepest
+stored level. Every positive strength uses a full N-step source inversion before
+the source-control and target branches each run k reverse steps.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_edit.py --strength 0.5 --guidance-scale 5 --save-trajectories
+```
+
+The offline script saves original, VAE-only, source-control and target-edit images,
+a labelled grid, JSON/CSV preservation metrics and optional explicit-ID trajectories.
+It records both prompts, strength, selected timestep/alpha/noise standard deviation,
+reverse count, seed, model revision, guidance, runtime and environment. The default
+output directory is `outputs/editing/phase4/`. There is no spatial mask or final
+pixel composite. PSNR/SSIM indicate preservation, not target-prompt adherence.
+The blue-spacesuit smoke did not reliably change the suit color; do not treat this
+example command as a successful color-edit guarantee. See the
+[Phase 4 report](docs/phase4-status.md) for actual results and limitations.
+
+A verified global appearance example is coffee-photo to pencil drawing:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_edit.py --image assets/examples/coffee.png --source-prompt "a photo of a white ceramic cup filled with coffee on a wooden table" --target-prompt "a black and white pencil drawing of a cup of coffee, detailed sketch, pencil shading on white paper" --strength 1 --guidance-scale 7.5 --output-dir outputs/editing/phase4-sketch
+```
+
+The target branch visibly changed to a pencil style in this run; the matched
+source branch remained photographic. Both changed geometry/details relative to
+the original. This is global editing, not localized background preservation.
 
 ## Known limitations
 
