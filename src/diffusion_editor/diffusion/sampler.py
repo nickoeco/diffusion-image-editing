@@ -33,11 +33,12 @@ class DDIMSampler:
     @torch.inference_mode()
     def sample(self, initial_latent: Tensor, prompt_embeddings: Tensor, guidance_scale: float = 1.0,
                *, return_trajectory: bool = False,
-               trajectory_device: str | torch.device = "cpu") -> SamplingResult:
-        """Start at the highest selected level; return a clean FP32 device latent.
+               trajectory_device: str | torch.device = "cpu",
+               start_timestep: int | None = None) -> SamplingResult:
+        """Start at a selected level (default highest); return a clean FP32 latent.
 
-        The caller must supply a latent at this schedule's terminal level, normally
-        from its matching InversionResult. No random initial noise is introduced.
+        The caller must supply the latent at start_timestep from a matching
+        inversion trajectory. CLEAN is a no-update path. No new noise is added.
         """
         if initial_latent.ndim != 4 or min(initial_latent.shape) < 1 or not initial_latent.is_floating_point():
             raise ValueError("initial latent must be nonempty floating BCHW")
@@ -45,7 +46,11 @@ class DDIMSampler:
             raise ValueError("initial latent must be finite")
         validate_conditioning(initial_latent, prompt_embeddings, guidance_scale)
         current = initial_latent.detach().float().clone()
-        levels = self.schedule.reverse_timesteps
+        all_levels = self.schedule.reverse_timesteps
+        start = all_levels[0] if start_timestep is None else start_timestep
+        if type(start) is not int or start not in all_levels:
+            raise ValueError("start_timestep must be an explicit level in the shared schedule")
+        levels = all_levels[all_levels.index(start):]
         states = {levels[0]: current.to(trajectory_device).clone()} if return_trajectory else None
         coefficients = {t: self.schedule.alpha(t, device=current.device) for t in levels}
         for t, s in zip(levels, levels[1:]):

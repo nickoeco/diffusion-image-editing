@@ -15,6 +15,7 @@ from diffusion_editor.models.sd_backend import SDBackend
 from diffusion_editor.models.text_encoder import TextEncoderWrapper
 from diffusion_editor.models.vae import VAEWrapper
 from diffusion_editor.utils.image_utils import image_to_tensor
+from diffusion_editor.pipelines.conditioning import encode_conditioning
 
 
 @dataclass(frozen=True)
@@ -49,18 +50,18 @@ class ReconstructionPipeline:
         validate_guidance_scale(inversion_guidance_scale)
         original = image_to_tensor(image).detach().clone()
         schedule = DDIMSchedule.from_scheduler(self.backend.scheduler, num_steps)
-        conditional = self.text.encode_prompt(source_prompt)
-        if conditional.shape[0] != original.shape[0]:
-            raise ValueError("prompt and image batch sizes must match")
-        paired = (self.text.encode_prompt_pair(source_prompt, negative_prompt)
-                  if guidance_scale != 1 or inversion_guidance_scale != 1 else None)
+        inversion_embeddings = encode_conditioning(self.text, source_prompt, negative_prompt,
+                                                    inversion_guidance_scale, original.shape[0])
+        sampling_embeddings = (inversion_embeddings if inversion_guidance_scale == guidance_scale
+                               else encode_conditioning(self.text, source_prompt, negative_prompt,
+                                                        guidance_scale, original.shape[0]))
         latent = self.vae.encode_image(original)
         vae_image = self.vae.decode_latents(latent)
         inversion = DDIMInverter(schedule, self.predict_noise).invert(
-            latent, conditional if inversion_guidance_scale == 1 else paired, inversion_guidance_scale)
+            latent, inversion_embeddings, inversion_guidance_scale)
         sampling = DDIMSampler(schedule, self.predict_noise).sample(
             inversion.final_latent.to(self.backend.device),
-            conditional if guidance_scale == 1 else paired, guidance_scale,
+            sampling_embeddings, guidance_scale,
             return_trajectory=return_trajectory)
         ddim_image = self.vae.decode_latents(sampling.final_latent)
         if vae_image.shape != original.shape or ddim_image.shape != original.shape:

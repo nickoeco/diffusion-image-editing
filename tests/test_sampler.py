@@ -65,3 +65,32 @@ def test_sampler_rejects_bad_latents():
     for z in (torch.zeros(4, 2, 2), torch.zeros(1, 4, 2, 2).long(), torch.full((1, 4, 2, 2), float("inf"))):
         with pytest.raises(ValueError):
             sampler.sample(z, torch.ones(1, 2, 3))
+
+
+def test_partial_start_and_clean_noop():
+    schedule = DDIMSchedule(torch.full((12,), 0.02), (11, 7, 2, 0))
+    clean = torch.zeros(1, 4, 2, 2)
+    e = torch.ones(1, 2, 3)
+    calls = []
+    def predictor(z, t, embeddings):
+        calls.append(t)
+        return torch.ones_like(z) * 0.2
+    inversion = DDIMInverter(schedule, predictor).invert(clean, e)
+    calls.clear()
+    sampler = DDIMSampler(schedule, predictor)
+    result = sampler.sample(inversion.trajectory[2], e, start_timestep=2, return_trajectory=True)
+    assert calls == [2, 0]
+    assert result.timesteps == (2, 0, -1)
+    assert tuple(result.trajectory) == (2, 0, -1)
+    torch.testing.assert_close(result.final_latent, clean, atol=1e-6, rtol=0)
+    calls.clear()
+    noop = sampler.sample(clean, e, start_timestep=-1, return_trajectory=True)
+    assert calls == [] and noop.timesteps == (-1,)
+    torch.testing.assert_close(noop.final_latent, clean, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("start", [True, -2, 3, 10, 0.5])
+def test_unknown_partial_start_rejected(start):
+    sampler = DDIMSampler(DDIMSchedule(torch.full((10,), 0.01), (9, 5, 1)), lambda z, t, e: z)
+    with pytest.raises(ValueError, match="start_timestep"):
+        sampler.sample(torch.zeros(1, 4, 2, 2), torch.ones(1, 2, 3), start_timestep=start)
