@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "diffusion-image-editing"
 version = "0.1.0"
-description = "Educational DDIM inversion and mask-guided editing (Phase 0)"
+description = "Educational DDIM inversion and mask-guided editing"
 requires-python = ">=3.10,<3.13"
 dependencies = ["PyYAML==6.0.2"]
 
@@ -16,10 +16,14 @@ model = [
   "huggingface-hub==0.34.4", "numpy==1.26.4", "Pillow==11.3.0",
 ]
 dev = ["pytest==8.4.2"]
+test = ["pytest==8.4.2", "torch==2.5.1", "numpy==1.26.4", "Pillow==11.3.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: explicit opt-in real pretrained model checks"]
+markers = [
+  "integration: explicit opt-in real pretrained model checks",
+  "gpu: explicit opt-in CUDA tensor checks",
+]
