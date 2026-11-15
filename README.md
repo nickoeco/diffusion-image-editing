@@ -2,9 +2,9 @@
 
 A Computer Vision course project using pretrained Stable Diffusion 1.5 with custom
 DDIM inversion, reverse sampling, Classifier-Free Guidance (CFG), and mask-guided
-latent blending. **Phase 2 adds a scheduler-aligned noise grid and custom DDIM
-inversion on top of VAE/CLIP conditioning. Reverse sampling and image editing are
-not implemented yet.** All future changes must
+latent blending. **Phase 3 adds custom reverse DDIM sampling, manual CFG and
+same-prompt reconstruction with PSNR/SSIM. Image editing is not implemented yet.**
+All future changes must
 follow [AGENTS.md](AGENTS.md).
 
 Project documentation is maintained in English. Workflow communication may use
@@ -25,7 +25,7 @@ python scripts/check_environment.py --output outputs/environment.json
 
 The current offline suite uses real CPU PyTorch tensors and small synthetic models;
 it requires no GPU, pretrained weights, Diffusers, or Transformers. The `test` extra
-installs its tensor/image dependencies. The original Phase 0 tests needed only the
+installs tensor/image dependencies and scikit-image for metric tests. The original Phase 0 tests needed only the
 lighter `dev` extra. Installing the project metadata alone does not verify the full
 model dependency stack. CUDA and real-weight tests require explicit opt-in flags.
 
@@ -54,7 +54,8 @@ Direct dependencies are pinned. A [tested Windows/Python 3.11/CUDA 12.4 constrai
 snapshot](configs/constraints-windows-py311-cu124.txt) records the installed versions.
 Use it with `pip install -c configs/constraints-windows-py311-cu124.txt -r requirements.txt`
 after installing the CUDA torch wheels. It is not a cross-platform lockfile.
-Gradio, OpenCV, plotting, and metric libraries will be introduced in their phases.
+Phase 3 adds scikit-image 0.25.2 for SSIM. Gradio, OpenCV and plotting libraries
+will be introduced in later phases.
 
 ## Model setup and smoke checks
 
@@ -96,10 +97,10 @@ configs/                  Explicit YAML configuration
 src/diffusion_editor/
   config.py               Configuration validation
   models/                Component loading, VAE and CLIP wrappers (implemented)
-  diffusion/              Schedule and inversion; sampler and CFG planned
+  diffusion/              Schedule, inversion, reverse sampler, manual CFG
   editing/                Planned: mask, blending, editor
-  pipelines/              Planned: reconstruction and editing orchestration
-  evaluation/             Planned: metrics and reproducible experiments
+  pipelines/              Same-prompt reconstruction; editing planned
+  evaluation/             PSNR/SSIM; experiment orchestration planned
   demo/                   Planned: Gradio interface
   utils/                  Environment diagnostics and logging
 scripts/                  Environment checks, component forward, reference generation
@@ -173,7 +174,8 @@ IDs. The separate clean ID is `-1` with alpha 1; a cloned scheduler explicitly u
 Snapshots are FP32 on CPU by default. At the clean state, the first U-Net query
 uses the lowest selected training timestep; `-1` is never sent to the network.
 Inversion is approximate. Its final state is not necessarily pure Gaussian noise.
-Guidance scale 1 is supported; manual CFG is deferred to Phase 3.
+Conditional B embeddings support guidance 1. For other scales, provide paired 2B
+embeddings from `text.encode_prompt_pair`; inversion and sampling share manual CFG.
 
 ```powershell
 # Reuse the Phase 1 test card, or pass --image with a valid input image.
@@ -187,6 +189,38 @@ CUDA memory and environment. Load the locally generated trajectory with
 no reverse reconstruction. See the [Phase 2 report](docs/phase2-status.md) and
 [equation conventions](docs/implementation.md).
 
+## Phase 3: reconstruction and metrics
+
+```python
+from diffusion_editor.pipelines.reconstruction import ReconstructionPipeline
+from diffusion_editor.evaluation.metrics import reconstruction_metrics
+
+with Image.open("assets/examples/astronaut.png") as image:
+    result = ReconstructionPipeline(backend).reconstruct(
+        image, "a portrait of an astronaut wearing a spacesuit", num_steps=50,
+        guidance_scale=1.0, inversion_guidance_scale=1.0, return_trajectory=True)
+metrics = reconstruction_metrics(result.original, result.ddim_reconstruction)
+```
+
+The VAE-only and DDIM images are separate outputs. Inversion and sampling share
+exactly the same schedule, clean boundary and source prompt. Guidance settings
+are independently configurable; start with 1/1. The sampler executes our eta=0
+equations and CFG, not Diffusers' pipeline or step method.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/test_reconstruction.py --image assets/examples/astronaut.png --source-prompt "a portrait of an astronaut wearing a spacesuit" --save-intermediates --output-dir outputs/reconstruction/phase3-astronaut
+```
+
+The image is a public-domain example with [recorded provenance](assets/examples/README.md).
+The default `--image` still uses the Phase 1 generated card when that output exists.
+The script saves original/VAE/DDIM PNGs, a labelled comparison, `report.json` and
+`metrics.csv`. `--save-intermediates` also saves both trajectories and explicitly
+labelled decoded-latent previews (not predicted clean images). It is offline and
+uses only cached model weights. Quality is measured on floating RGB [0,1] before
+uint8 saving; SSIM uses uniform 7×7 windows, channel averaging and sample covariance.
+Exact-match PSNR is infinite in the library and encoded as null in strict JSON.
+See [Phase 3 results](docs/phase3-status.md) for measured reconstruction drift.
+
 ## Known limitations
 
 Offline synthetic tests verify tensor contracts and equations; actual pretrained
@@ -194,3 +228,6 @@ verification is tracked separately in the phase status records. DDIM inversion i
 approximate, and the VAE introduces reconstruction error. Latent masks cannot
 guarantee exact pixel preservation; final pixel compositing will be independently
 configurable. Project completion is governed by the definition of done in AGENTS.md.
+The natural-image smoke shows substantial DDIM reconstruction drift; passing
+equation tests does not imply faithful appearance recovery. No editing quality,
+general improvement or completed Phase 7 ablation is claimed.

@@ -1,9 +1,10 @@
 # Implementation status and mathematical contracts
 
-Phases 1–2 implement VAE/text conditioning, the noise grid and custom DDIM inversion.
+Phases 1–3 implement VAE/text conditioning, DDIM inversion, reverse sampling,
+manual CFG and same-prompt reconstruction.
 `models/sd_backend.py::SDBackend.load` loads model configuration and weights;
 `resolve_runtime` selects device/dtype. Scheduler configuration is loaded with
-`DDIMScheduler.from_pretrained`; it is not yet used to execute custom sampling.
+`DDIMScheduler.from_pretrained`; custom mathematics never calls its step method.
 
 ## VAE encoding and decoding (implemented)
 
@@ -104,7 +105,8 @@ rejected rather than silently clamped.
 
 ## DDIM inversion (implemented)
 
-`diffusion/inversion.py::ddim_inversion_step` implements the equations below for
+`diffusion/inversion.py::ddim_inversion_step` delegates to `diffusion/step.py::ddim_step`,
+which implements the equations below for
 the actual current/next higher-noise pair (t,s), where alpha_bar_s < alpha_bar_t:
 
 ```text
@@ -122,8 +124,9 @@ U-Net. Noise prediction at the current state approximates the unknown higher-noi
 state; this is not an exact inverse of future denoising.
 
 `models/noise_predictor.py::UNetNoisePredictor` casts model inputs to U-Net runtime
-dtype and returns FP32 epsilon. Only guidance 1 is supported; other scales fail
-explicitly until Phase 3 implements manual CFG separately.
+dtype and returns FP32 epsilon. Phase 3 extends inversion with the shared manual
+CFG helper: B conditional embeddings are valid at guidance 1; 2B paired embeddings
+support nonnegative finite guidance scales.
 
 Tests use independent NumPy float64 equations and an analytic constant-epsilon
 trajectory, with irregular gaps, boundaries and deterministic repetition. Optional
@@ -134,12 +137,55 @@ query-time conventions. Production never calls the reference step. See the
 [DDIM paper](https://arxiv.org/abs/2010.02502) and pinned
 [scheduler reference](https://huggingface.co/docs/diffusers/v0.35.1/en/api/schedulers/ddim_inverse).
 
+## Reverse DDIM sampling (implemented)
+
+`diffusion/sampler.py::ddim_sampling_step` uses the same explicit `ddim_step`
+equations with alpha_bar_t < alpha_bar_s. `DDIMSampler.sample` traverses the exact
+descending grid and queries the U-Net at each current noisy timestep. At 50 steps
+the last call is timestep 1, followed by a step to clean ID -1 (alpha=1). There is
+no model call at -1. Latents and coefficients use FP32; the U-Net may use FP16.
+The supplied initial latent must belong to the highest selected level; our
+reconstruction pipeline obtains it from the matching inversion result.
+
+The final latent remains on the compute device. Optional snapshots include the
+initial noisy level, every intermediate level and clean; default storage is CPU.
+Tests cover irregular gaps, final clean updates, analytic constant-noise roundtrips
+and Diffusers fixed-epsilon eta=0 references at 1/20/50/100 steps.
+
+## Classifier-Free Guidance (implemented)
+
+`diffusion/guidance.py::classifier_free_guidance` implements FP32
+`epsilon = u + w*(c-u)` independently of the DDIM update. Scale 0 selects u, scale
+1 selects c and larger scales extrapolate. Invalid/nonfinite scales or predictions
+fail. `predict_guided_noise` accepts B conditional embeddings only at w=1, or
+2B embeddings in [all unconditional, all conditional] order. For 2B, it duplicates
+the latent batch once, makes one U-Net call, splits the result and applies CFG.
+It keeps the paired batch at w=0/1 too; it does not change batch shape as a hidden
+optimization. The pipeline uses a conditional-only B batch when a stage requests
+w=1, so that the Phase 2 baseline is preserved. Negative prompts affect only CFG
+stages with paired conditioning. Larger guidance can worsen source reconstruction.
+
+## Reconstruction, metrics and previews (implemented)
+
+`ReconstructionPipeline.reconstruct` encodes the image once, decodes a VAE baseline,
+inverts with the source prompt, reverse-samples with that same prompt, then decodes
+the DDIM output. It separately exposes inversion/sampling guidance, defaulting to
+1/1, and validates image/prompt batch alignment. It makes no exact-recovery claim.
+
+`evaluation/metrics.py::reconstruction_metrics` accepts one matching RGB [1,3,H,W]
+pair in [0,1]. PSNR uses double-precision whole-image RGB MSE and data range 1.
+SSIM uses scikit-image 0.25.2 with uniform 7×7 windows, channel averaging, sample
+covariance and data range 1. H,W must be >=7; there is no resize, mask or zeroed
+background. Identical images have PSNR +infinity; the saving script represents
+this as null in strict JSON. Invalid images and nonfinite SSIM fail explicitly.
+
+`utils/visualization.py::save_image_grid` saves labelled images without resizing.
+Optional intermediate previews decode selected raw latent states and are labelled
+with stage/timestep; noisy previews are not x0 predictions or final reconstruction.
+Real smoke results and limitations are recorded in `phase3-status.md`.
+
 ## Later phases (not implemented)
 
-- Reverse DDIM sampling will traverse the same levels in descending order, using
-  the explicit eta=0 equation and the same clean boundary (Phase 3).
-- CFG: eps = eps_uncond + w*(eps_cond-eps_uncond); embedding and U-Net batch order
-  must match. Larger w can improve target adherence but damage reconstruction.
 - Local blend: z_s = M*z_edit_s + (1-M)*z_source_s after updating t -> s (Phase 5).
   Look up source **s**, including the clean terminal state. Do not blend against t.
 - Strength must select a stored level and define endpoints and actual reverse step

@@ -42,4 +42,15 @@ The VAE wrapper casts its inputs explicitly; CLIP token IDs stay integer while
 output embeddings use the model dtype. Coefficients/critical math will use FP32.
 Inversion retains snapshots on CPU by default to limit GPU memory; callers can
 explicitly select another storage device. GPU state updates remain FP32.
-Phase 2 conditioning is conditional-only; CFG is deferred to Phase 3.
+Phase 3 adds `diffusion/guidance.py` for explicit batched CFG and `sampler.py` for
+the shared descending grid. Both inversion and sampling call the same guidance
+helper and `step.py` for the shared eta=0 equations, with direction-specific
+coefficient checks. The raw U-Net adapter does not itself implement guidance.
+
+`pipelines/reconstruction.py::ReconstructionPipeline` composes VAE, text, inversion
+and sampling without performing disk I/O or metric calculations. Inversion and
+sampling receive the exact same schedule object. Its structured output retains
+original, VAE-only and DDIM images, plus inversion and optional sampling histories.
+`evaluation/metrics.py` defines single-image RGB PSNR/SSIM independently;
+`scripts/test_reconstruction.py` handles reproducible runs, saving and previews.
+There is no editing mask, strength selection or target prompt in Phase 3.
