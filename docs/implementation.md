@@ -1,6 +1,6 @@
 # Implementation status and mathematical contracts
 
-Phase 1 implements deterministic VAE and token-level text conditioning wrappers.
+Phases 1–2 implement VAE/text conditioning, the noise grid and custom DDIM inversion.
 `models/sd_backend.py::SDBackend.load` loads model configuration and weights;
 `resolve_runtime` selects device/dtype. Scheduler configuration is loaded with
 `DDIMScheduler.from_pretrained`; it is not yet used to execute custom sampling.
@@ -76,13 +76,68 @@ batch shapes. The real order check compares the wrapper with direct pretrained
 execution using identical token order and batch size. Synthetic tests independently
 verify that the first B entries are unconditional and the remaining B are conditional.
 
+## Noise schedule and clean boundary (implemented)
+
+`diffusion/schedule.py::DDIMSchedule.from_scheduler` clones the pretrained DDIM
+scheduler configuration, reads its beta vector and actual inference IDs, and
+checks that FP32 cumulative products match the scheduler. Training coefficients
+and the original scheduler are unchanged. No adjacent-integer or fixed-stride
+assumption is used by custom traversal, so nonuniform grids are supported.
+
+```text
+alpha_t = 1 - beta_t
+alpha_bar_t = product(alpha_0, ..., alpha_t)
+clean ID = -1; alpha_bar_clean = 1
+```
+
+The checkpoint's `set_alpha_to_one=false` would use alpha_bar_0 at the denoising
+boundary. The VAE latent is actually clean, so our cloned DDIM view explicitly
+sets `set_alpha_to_one=True`. Inversion and future reverse sampling must share
+this choice. Training timestep 0 remains distinct from clean. Unsupported epsilon
+singularities, clipping/thresholding, non-epsilon models and invalid grids fail.
+
+For the pinned checkpoint and 50 leading steps, inversion levels are
+`[-1, 1, 21, ..., 981]`; reverse levels will be `[981, ..., 21, 1, -1]`.
+The terminal inverted level is 981, not an assumed 999 or pure Gaussian sample.
+Requesting 1000 leading steps with offset 1 produces an out-of-range ID and is
+rejected rather than silently clamped.
+
+## DDIM inversion (implemented)
+
+`diffusion/inversion.py::ddim_inversion_step` implements the equations below for
+the actual current/next higher-noise pair (t,s), where alpha_bar_s < alpha_bar_t:
+
+```text
+x0_hat = (z_t - sqrt(1-alpha_bar_t)*epsilon) / sqrt(alpha_bar_t)
+z_s = sqrt(alpha_bar_s)*x0_hat + sqrt(1-alpha_bar_s)*epsilon
+```
+
+All coefficient/update arithmetic is FP32, with shape/device/finiteness checks.
+No stochastic noise, clipping or library step is used. `DDIMInverter.invert`
+records N+1 snapshots including clean, by explicit state ID, with query IDs.
+The first noise prediction uses the lowest selected training timestep on the clean
+latent; subsequent predictions use the current state timestep. At 50 steps the
+query IDs are `[1, 1, 21, ..., 961]`. The clean bookkeeping ID never reaches the
+U-Net. Noise prediction at the current state approximates the unknown higher-noise
+state; this is not an exact inverse of future denoising.
+
+`models/noise_predictor.py::UNetNoisePredictor` casts model inputs to U-Net runtime
+dtype and returns FP32 epsilon. Only guidance 1 is supported; other scales fail
+explicitly until Phase 3 implements manual CFG separately.
+
+Tests use independent NumPy float64 equations and an analytic constant-epsilon
+trajectory, with irregular gaps, boundaries and deterministic repetition. Optional
+reference tests compare fixed-epsilon updates with `DDIMInverseScheduler` at
+1/20/50/100 steps, plus leading/linspace/trailing grid preservation. These verify
+coefficient math, not equality between full neural pipelines with different
+query-time conventions. Production never calls the reference step. See the
+[DDIM paper](https://arxiv.org/abs/2010.02502) and pinned
+[scheduler reference](https://huggingface.co/docs/diffusers/v0.35.1/en/api/schedulers/ddim_inverse).
+
 ## Later phases (not implemented)
 
-- DDIM: x0_hat = (z_t - sqrt(1-alpha_bar_t)*eps) / sqrt(alpha_bar_t);
-  z_s = sqrt(alpha_bar_s)*x0_hat + sqrt(1-alpha_bar_s)*eps.
-  The same deterministic update works toward higher noise for inversion (Phase 2)
-  and lower noise for sampling (Phase 3). Inversion approximates the unknown future
-  noise prediction; real-image reconstruction is not exact.
+- Reverse DDIM sampling will traverse the same levels in descending order, using
+  the explicit eta=0 equation and the same clean boundary (Phase 3).
 - CFG: eps = eps_uncond + w*(eps_cond-eps_uncond); embedding and U-Net batch order
   must match. Larger w can improve target adherence but damage reconstruction.
 - Local blend: z_s = M*z_edit_s + (1-M)*z_source_s after updating t -> s (Phase 5).

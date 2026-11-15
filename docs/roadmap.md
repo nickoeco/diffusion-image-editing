@@ -14,5 +14,7 @@
 Every phase follows explain -> implement -> test -> review -> summarize. Do not
 implement later-phase placeholders as if functional. Phase 1 was authorized and
 started on 2026-11-15; it adds VAE/text wrappers, offline tensor tests and explicit
-GPU/real-weight checks. Phase 2 has not started. See the phase status records for
+GPU/real-weight checks. Phase 2 adds the shared schedule, explicit clean boundary,
+custom inversion, equation/reference tests and a real 50-step inversion smoke.
+Phase 3 has not started. See the phase status records for
 executed verification and AGENTS.md for binding constraints and test acceptance details.

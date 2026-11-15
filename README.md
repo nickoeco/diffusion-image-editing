@@ -2,8 +2,9 @@
 
 A Computer Vision course project using pretrained Stable Diffusion 1.5 with custom
 DDIM inversion, reverse sampling, Classifier-Free Guidance (CFG), and mask-guided
-latent blending. **Phase 1 adds deterministic VAE encoding/decoding and batched
-CLIP conditioning. Image editing is not implemented yet.** All future changes must
+latent blending. **Phase 2 adds a scheduler-aligned noise grid and custom DDIM
+inversion on top of VAE/CLIP conditioning. Reverse sampling and image editing are
+not implemented yet.** All future changes must
 follow [AGENTS.md](AGENTS.md).
 
 Project documentation is maintained in English. Workflow communication may use
@@ -95,7 +96,7 @@ configs/                  Explicit YAML configuration
 src/diffusion_editor/
   config.py               Configuration validation
   models/                Component loading, VAE and CLIP wrappers (implemented)
-  diffusion/              Planned: schedule, inversion, sampler, CFG
+  diffusion/              Schedule and inversion; sampler and CFG planned
   editing/                Planned: mask, blending, editor
   pipelines/              Planned: reconstruction and editing orchestration
   evaluation/             Planned: metrics and reproducible experiments
@@ -151,6 +152,40 @@ The script defaults to cached weights; downloads require `--allow-download`.
 Pytest integration checks always use local cache and never download weights.
 Executed checks, numerical caveats, and output paths are recorded in the
 [Phase 1 status report](docs/phase1-status.md).
+
+## Phase 2: scheduler and DDIM inversion
+
+```python
+from diffusion_editor.diffusion.schedule import DDIMSchedule
+from diffusion_editor.diffusion.inversion import DDIMInverter
+from diffusion_editor.models.noise_predictor import UNetNoisePredictor
+
+schedule = DDIMSchedule.from_scheduler(backend.scheduler, num_steps=50)
+source = text.encode_prompt("a red apple")  # [B,L,D], conditional-only
+result = DDIMInverter(schedule, UNetNoisePredictor(backend.unet)).invert(latent, source)
+noisy_latent = result.final_latent
+source_at_t = result.trajectory[result.timesteps[-1]]
+```
+
+The schedule preserves the pretrained training coefficients and actual inference
+IDs. The separate clean ID is `-1` with alpha 1; a cloned scheduler explicitly uses
+`set_alpha_to_one=True` for this boundary. The original scheduler is unchanged.
+Snapshots are FP32 on CPU by default. At the clean state, the first U-Net query
+uses the lowest selected training timestep; `-1` is never sent to the network.
+Inversion is approximate. Its final state is not necessarily pure Gaussian noise.
+Guidance scale 1 is supported; manual CFG is deferred to Phase 3.
+
+```powershell
+# Reuse the Phase 1 test card, or pass --image with a valid input image.
+.\.venv\Scripts\python.exe scripts/test_inversion.py --steps 50
+```
+
+This cached-weight script saves `outputs/inversion/phase2/trajectory.pt` and
+`report.json`, including state/query IDs, alpha coefficients, runtime, peak allocated
+CUDA memory and environment. Load the locally generated trajectory with
+`torch.load(path, weights_only=True)`; integer IDs map to tensors. This performs
+no reverse reconstruction. See the [Phase 2 report](docs/phase2-status.md) and
+[equation conventions](docs/implementation.md).
 
 ## Known limitations
 

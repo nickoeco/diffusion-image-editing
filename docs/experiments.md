@@ -9,6 +9,11 @@ in the adjacent `report.json`. This is a structural baseline rather than an
 ablation or a natural-image quality benchmark; no PSNR/SSIM or improvement claims
 are reported. See `phase1-status.md` for executed verification.
 
+Phase 2 saved a real 50-step inversion trajectory and execution metadata under
+`outputs/inversion/phase2/`. This is a correctness smoke run, not reconstruction,
+an ablation or an editing-quality result. Scheduler reference tests at different
+step counts do not count as completed experimental ablations.
+
 Phase 7 will evaluate reconstruction at 20/50/100 steps; strength at
 0.25/0.50/0.75/1.0; guidance at 3/5/7.5/10; global versus latent blending versus
 feathering versus optional pixel compositing; and a clearly labelled Diffusers

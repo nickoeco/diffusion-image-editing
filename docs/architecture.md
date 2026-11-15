@@ -14,7 +14,16 @@ Future data flow: RGB image -> deterministic VAE encode -> source-conditioned
 custom inversion -> trajectory indexed by explicit noise-level ID -> custom reverse
 sampling with target CFG -> aligned optional mask blending -> VAE decode -> optional
 pixel composite. The clean boundary needs its own identity, distinct from training
-timestep zero. Phase 2 will implement and test this contract before any editing code.
+timestep zero. Phase 2 implements and tests this contract before any editing code.
+
+`DDIMSchedule` owns CPU FP32 training coefficients and ordered inference IDs.
+It clones the backend's scheduler only to obtain the grid/configuration, with
+an explicit alpha=1 clean boundary. It never uses the scheduler's step method.
+`DDIMInverter` consumes a noise-predictor callable and returns an `InversionResult`
+containing snapshots indexed by timestep, traversal/query IDs, schedule and guidance
+configuration. The mapping prevents adding/removing states; its tensors should be
+treated as read-only by consumers. `UNetNoisePredictor` casts into the U-Net dtype
+and returns FP32 noise, separating numerical tests from pretrained execution.
 
 Diffusion mathematics must not depend on UI or disk I/O. Pipeline orchestration
 combines the modules; evaluation and Gradio call that pipeline. Full Diffusers
@@ -31,5 +40,6 @@ results, while model wrappers remain independent of file paths and UI state.
 Runtime policy: CUDA auto uses FP16 U-Net/CLIP, CPU uses FP32, VAE always uses FP32.
 The VAE wrapper casts its inputs explicitly; CLIP token IDs stay integer while
 output embeddings use the model dtype. Coefficients/critical math will use FP32.
-Trajectory memory retention and CPU offload remain decisions for the inversion phase,
-after measuring actual GPU memory rather than assuming unlimited resources.
+Inversion retains snapshots on CPU by default to limit GPU memory; callers can
+explicitly select another storage device. GPU state updates remain FP32.
+Phase 2 conditioning is conditional-only; CFG is deferred to Phase 3.
