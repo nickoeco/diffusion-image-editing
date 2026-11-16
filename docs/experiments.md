@@ -83,6 +83,43 @@ The first run includes full inversion and partial source/target trajectories.
 Changing both strength and guidance in these exploratory checks is not a controlled
 ablation. Formal experiments and general editing-quality claims remain pending.
 
+## Phase 5 local editing preservation check
+
+Using the same 400×600 coffee image, authored ellipse mask, seed 42, pinned model,
+50 inversion steps (guidance 1), strength 1 and reverse guidance 7.5, the target
+is the same pencil-drawing prompt as Phase 4. Scores below use RGB [0,1] before
+uint8 saving. Hard-mask rows have weights 1-M with 171,241 background pixels.
+
+| Path | Background MAE | Background PSNR (dB) | Literal zero-mask MAE |
+| --- | --- | --- | --- |
+| Global control, both local operations disabled | 0.256230 | 9.554 | 0.256230 |
+| Hard latent blend, before pixel composite | 0.042941 | 24.275 | 0.042941 |
+| Hard latent blend + pixel composite | 0 | +infinity | 0 |
+| Feather sigma 4, before pixel composite | 0.035245 | 25.358 | 0.035542 |
+| Feather sigma 4 + pixel composite | 0.000500 | 44.433 | 0 |
+
+Feather rows use the **effective soft mask**, so their weighted region differs
+from the hard-mask region. There are 156,457 literal zero-mask pixels after
+feathering. Relative to the original requested hard region, feathered final MAE
+is 0.000292: the Gaussian support deliberately expands the editable area. Final
+zero-support pixels were also checked for exact equality in exported PNGs.
+
+The latent-only decrease is measured on this single example; exact final zeros
+come from pixel compositing and are not evidence of exact latent-space or VAE
+preservation. No regional SSIM/LPIPS is computed by zeroing other pixels, and no
+prompt-alignment improvement is inferred from preservation scores. The edit
+visibly applies pencil-like appearance inside the coarse mask, with geometry
+changes and seam limitations retained.
+
+Runs are saved under `outputs/editing/phase5-hard/`, `phase5-feather/`,
+`phase5-global-control/` and `phase5-global-mask-evaluation/`. The last run supplies
+the mask for evaluation while disabling both local operations; its PNG exactly
+matches the no-mask global control. Hard/feather runs save uncomposited images
+separately, allowing independent before/after pixel-composite evaluation without
+another diffusion run. Exact float masks, settings/hashes, grids, metrics and
+optional trajectories are retained. See `phase5-status.md`. This single-image
+check does not complete Phase 7's formal ablation/baseline requirements.
+
 ## Planned evaluation
 
 Phase 7 will evaluate reconstruction at 20/50/100 steps; strength at

@@ -20,8 +20,9 @@ Phase 3 adds manual CFG, shared eta=0 arithmetic, reverse sampling, same-prompt
 reconstruction, PSNR/SSIM, labelled previews and measured smoke results.
 Phase 4 adds discrete stored-level strength selection, partial reverse sampling,
 source/target global editing, matched same-prompt controls and real smoke results.
-Current priority is reconstruction drift: diagnose model-dependent local residuals,
-validate numerical correction against the plain baseline, and retain adverse-case
-fallback/regression tests. Phase 5 has not started and is deferred while fidelity
-is reviewed. See `reconstruction-drift.md` and the phase status records for
+Reconstruction drift was addressed for the verified guidance-1 setting, with
+adverse-case fallback and documented high-guidance limits. The user subsequently
+authorized Phase 5: aligned masks, updated-ID source blending, feathering,
+independent pixel compositing and measured background preservation.
+Phase 6 has not started. See `reconstruction-drift.md` and the phase status records for
 executed verification and AGENTS.md for binding constraints and test acceptance details.

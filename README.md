@@ -2,16 +2,15 @@
 
 A Computer Vision course project using pretrained Stable Diffusion 1.5 with custom
 DDIM inversion, reverse sampling, Classifier-Free Guidance (CFG), and mask-guided
-latent blending. **Phase 4 adds global source-to-target prompt editing with
-trajectory-based strength selection and a matched source-prompt control.**
+latent blending. **Phase 5 adds aligned binary/soft masks, timestep-matched latent
+blending, feathering and independently configurable final pixel compositing.**
 All future changes must
 follow [AGENTS.md](AGENTS.md).
 
 Project documentation is maintained in English. Workflow communication may use
 English, Chinese, or both.
 
-Current priority: reconstruction-fidelity repair before Phase 5. Reconstruction
-now defaults to budgeted residual-refined DDIM with an end-to-end latent-error
+Reconstruction defaults to budgeted residual-refined DDIM with an end-to-end latent-error
 selection check. Plain DDIM remains available for teaching and controlled baselines.
 See [the drift investigation](docs/reconstruction-drift.md) for measured evidence,
 the computational trade-off and known failure cases.
@@ -104,8 +103,8 @@ src/diffusion_editor/
   config.py               Configuration validation
   models/                Component loading, VAE and CLIP wrappers (implemented)
   diffusion/              Schedule, inversion, reverse sampler, manual CFG
-  editing/                Strength selection; mask and blending planned
-  pipelines/              Reconstruction and global source/target editing
+  editing/                Strength, binary/soft masks, latent blend, pixel composite
+  pipelines/              Reconstruction, global and local source/target editing
   evaluation/             PSNR/SSIM; experiment orchestration planned
   demo/                   Planned: Gradio interface
   utils/                  Environment diagnostics and logging
@@ -116,8 +115,8 @@ assets/examples/          Future input examples with provenance and usage permis
 outputs/                  Runtime artifacts excluded from version control
 ```
 
-Global editing is available through `scripts/run_edit.py`. Local mask editing,
-the demo and formal experiment commands are not implemented. See the
+Global and local editing are available through `scripts/run_edit.py`.
+The demo and formal experiment commands are not implemented. See the
 [roadmap](docs/roadmap.md) for development gates.
 
 ## Phase 1: VAE and text conditioning
@@ -295,6 +294,52 @@ A verified global appearance example is coffee-photo to pencil drawing:
 The target branch visibly changed to a pencil style in this run; the matched
 source branch remained photographic. Both changed geometry/details relative to
 the original. This is global editing, not localized background preservation.
+
+## Phase 5: mask-guided local editing
+
+```python
+with Image.open("assets/examples/coffee.png") as image, Image.open("assets/examples/coffee_mask.png") as mask:
+    result = EditingPipeline(backend).edit_local(
+        image, "a photo of a cup of coffee on a wooden table",
+        "a black and white pencil drawing of a cup of coffee", mask,
+        strength=1, guidance_scale=7.5, num_steps=50,
+        latent_blending=True, preserve_background=True,
+        binary_mask=True, feather_radius=0)
+local_image = result.edited_image
+latent_only_image = result.uncomposited_image
+```
+
+Mask 1 edits and 0 preserves. PIL masks must be single-channel L/1; tensors may
+be HW or B1HW, floating [0,1] or boolean. A single mask can broadcast over a batch.
+Pixel dimensions must match the oriented image exactly; only latent conversion
+resizes. Binary masks use threshold >=0.5 and nearest resizing. Soft/feathered
+masks use bilinear resizing. Feather radius is Gaussian sigma in image pixels,
+truncated at ceil(3*sigma); it expands the effective edit support.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_edit.py --image assets/examples/coffee.png --mask assets/examples/coffee_mask.png --source-prompt "a photo of a white ceramic cup filled with coffee on a wooden table" --target-prompt "a black and white pencil drawing of a cup of coffee, detailed sketch, pencil shading on white paper" --strength 1 --guidance-scale 7.5 --save-trajectories --output-dir outputs/editing/phase5-hard
+```
+
+Use `--soft-mask` for soft input weights, `--feather-radius 4` for feathering,
+`--no-latent-blending` and `--no-pixel-composite` to control the two operations
+independently. Without `--mask`, the CLI still runs global editing.
+
+Latent blending occurs **after** each update, against the source inversion state
+at the updated ID, including clean -1. It also applies to the same-prompt control.
+Final compositing applies the effective pixel mask to original pixels separately.
+An empty mask with compositing enabled preserves the original exactly; with only
+latent blending it returns VAE reconstruction. Full masks match global editing.
+The editing default remains plain inversion; optional source refinement is explicit
+and does not apply reconstruction's original-latent selection to target edits.
+
+Local output includes `edited_uncomposited.png`, `effective_mask.png`, exact
+`mask_tensors.pt`, `preservation_comparison.png`, and background metrics in the
+JSON report, alongside the existing images/CSV/optional trajectories. Weighted
+background MAE/PSNR use weights 1-M and denominator 3*sum(weights); literal M==0
+pixels have a separate exact-preservation MAE. Empty regions are undefined.
+With feathering, zero-support preservation refers to the expanded effective mask;
+the report also evaluates the original requested mask. See the
+[Phase 5 report](docs/phase5-status.md) for measured effects and limitations.
 
 ## Known limitations
 

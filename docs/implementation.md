@@ -1,7 +1,7 @@
 # Implementation status and mathematical contracts
 
-Phases 1–4 implement VAE/text conditioning, DDIM inversion, reverse sampling,
-manual CFG, reconstruction and global source/target prompt editing.
+Phases 1–5 implement VAE/text conditioning, DDIM inversion, reverse sampling,
+manual CFG, reconstruction, global editing and mask-guided local editing.
 `models/sd_backend.py::SDBackend.load` loads model configuration and weights;
 `resolve_runtime` selects device/dtype. Scheduler configuration is loaded with
 `DDIMScheduler.from_pretrained`; custom mathematics never calls its step method.
@@ -283,11 +283,60 @@ to reconstruction, batch errors and repeatability. Real cached-model checks veri
 0/partial/full paths and source-vs-target differences, without asserting semantic
 success. Global editing has no spatial preservation guarantee.
 
+## Mask-guided local editing (implemented)
+
+`editing/mask.py::prepare_mask` validates exact pixel alignment with the oriented
+RGB image. Inputs are grayscale PIL L/1 or HW/B1HW floating/boolean tensors. RGB
+masks, ambiguous layouts, incorrect dimensions/batches and nonfinite/out-of-range
+weights fail explicitly. Binary masks threshold at >=0.5 and resize nearest;
+soft masks resize bilinearly to the model-configured latent resolution. A vanished
+tiny mask is warned about, rather than silently treated as a meaningful edit.
+
+Feathering uses a separable FP32 Gaussian at pixel resolution, with sigma equal
+to feather_radius and support ceil(3*sigma). Replicate padding and exact constant
+mask handling preserve zero/full masks. The resulting soft pixel mask is then
+resized bilinearly. Feathering expands the effective support beyond the original
+hard region; that expansion is saved and evaluated separately.
+
+`editing/blending.py::blend_latents` implements:
+
+```text
+z_s = M_latent*z_edit_s + (1-M_latent)*z_source_s
+```
+
+`SourceLatentBlender` prevalidates the required source states and looks them up by
+the **updated** timestep s. `DDIMSampler.sample` calls its optional after_step hook
+after t -> s and before saving the new snapshot. The final hook is s=-1, with the
+actual clean VAE latent. A missing clean state is an error. Shape/device/dtype and
+finite output checks guard callbacks. Source snapshots stay on CPU and only the
+needed matching state is transferred; the latent mask moves once to the compute
+device. This explicit local-edit operation does not alter reconstruction sampling.
+
+`EditingPipeline.edit_local` shares source preparation with global editing and
+applies the blender to both source-control and target branches. Strength zero
+still takes the clean no-U-Net path. All-one masks match global editing, and with
+all-zero latent masks the final latent is exactly the source clean latent.
+
+`composite_pixels` separately implements
+`x_final=M_pixel*x_decoded+(1-M_pixel)*x_original`. Literal zero weights preserve
+original pixels exactly. `latent_blending` and `preserve_background` are independent
+API flags. Disabling both gives the global path; enabling only pixel compositing
+is a distinct control. Empty masks with compositing yield the original; latent-only
+empty masks yield the lossy VAE baseline. Decoding spatially coupled latents can
+change pixels outside a latent mask, so exact pixel preservation is not credited
+to latent blending.
+
+`evaluation/metrics.py::background_metrics` computes weighted background MAE and
+MSE using weights 1-M and denominator `3*sum(1-M)`, then PSNR at data range 1.
+Literal M==0 pixels have a separately normalized MAE. Empty regions return None;
+defined perfect backgrounds have infinite PSNR (null in strict JSON, disambiguated
+by positive region weight). No regional perceptual score is computed on zeroed
+images. The CLI records requested-mask and effective-mask background scores,
+uncomposited/final images and exact float masks.
+
 ## Later phases (not implemented)
 
-- Local blend: z_s = M*z_edit_s + (1-M)*z_source_s after updating t -> s (Phase 5).
-  Look up source **s**, including the clean terminal state. Do not blend against t.
-- Mask resizing must preserve original spatial alignment (Phase 5).
+Gradio UI and formal experiment orchestration remain Phase 6/7 work.
 
 Each later phase must replace these planned descriptions with actual function references,
 tested timestep conventions, tensor contracts and evidence.

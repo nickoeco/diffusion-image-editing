@@ -15,3 +15,10 @@ scikit-image 0.25.2, saved as PNG with Pillow. The
 credits photographer Rachel Michetti and Pikolo Espresso Bar and states CC0/no
 copyright restrictions. Phase 4 uses it as an everyday-object editing input and
 a check that the implementation preserves non-square dimensions.
+
+`coffee_mask.png` is an authored 600×400 single-channel binary mask: a white
+ellipse with bounding box (155,25,445,325) on black, created with Pillow ImageDraw.
+Coordinates are (left,top,right,bottom) in the unmodified coffee image. It is a
+coarse user-selected edit region, not an object-segmentation annotation or a claim
+that every cup pixel is inside the region. Feathering is computed by the pipeline;
+this source mask is saved unfeathered for reproducibility.

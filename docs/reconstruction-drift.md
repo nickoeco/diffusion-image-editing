@@ -160,3 +160,8 @@ limitations; the global editor keeps plain inversion as its default and exposes
 refinement as an explicit source-inversion option without a reconstruction guard.
 Do not generalize this repair to target-edit quality. Phase 5 remains deferred
 while these fidelity results are reviewed.
+
+Subsequent status: the user explicitly authorized Phase 5 after reviewing/pushing
+this repair. Local editing adds mask-guided source-state blending and optional
+pixel compositing; reconstruction retains its independent sampler and the fidelity
+regression tests above. See `phase5-status.md`. The high-guidance limitation remains.

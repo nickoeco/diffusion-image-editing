@@ -95,3 +95,25 @@ intentionally change semantics, so original-latent MSE would penalize desired
 modifications. The repair performs no model training, new checkpoint loading,
 source-trajectory replay in sampling or pixel compositing
 in this repair. Phase 5 remains unstarted while fidelity is reviewed.
+
+## Phase 5 local editing
+
+The user subsequently authorized Phase 5. `editing/mask.py` owns mask validation,
+alignment, thresholding, optional Gaussian feathering and latent resizing.
+`editing/blending.py` implements the explicit mixing equation and a source-state
+lookup callback. The sampler has a small validated `after_step(latent,updated_id)`
+hook; diffusion code does not import mask/editing modules. The hook is absent for
+global editing and reconstruction, preserving their numerical paths.
+
+`EditingPipeline` shares a private prepared source context between global/local
+orchestration: conditioning, VAE encode, inversion, selected level and start latent.
+Local sampling passes the same stateless source blender to source-control and
+target branches. Only the updated IDs in the selected schedule suffix are allowed;
+the clean state must be present. Optional final pixel compositing is outside the
+sampler, and raw decoded outputs remain accessible for independent evaluation.
+
+`LocalEditingResult` extends the global output contract with effective pixel/latent
+masks, both uncomposited images and the independent operation flags. Background
+metrics are separate from whole-image reconstruction metrics. No UI or high-level
+Diffusers editing pipeline is introduced; prior reconstruction fidelity regression
+checks remain part of the full suite.
