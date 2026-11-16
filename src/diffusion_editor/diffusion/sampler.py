@@ -1,5 +1,6 @@
 """Custom deterministic reverse DDIM sampling on the inversion schedule."""
 from dataclasses import dataclass
+from collections.abc import Callable
 from types import MappingProxyType
 from typing import Mapping
 
@@ -34,11 +35,14 @@ class DDIMSampler:
     def sample(self, initial_latent: Tensor, prompt_embeddings: Tensor, guidance_scale: float = 1.0,
                *, return_trajectory: bool = False,
                trajectory_device: str | torch.device = "cpu",
-               start_timestep: int | None = None) -> SamplingResult:
+               start_timestep: int | None = None,
+               after_step: Callable[[Tensor, int], Tensor] | None = None) -> SamplingResult:
         """Start at a selected level (default highest); return a clean FP32 latent.
 
         The caller must supply the latent at start_timestep from a matching
         inversion trajectory. CLEAN is a no-update path. No new noise is added.
+        An optional callback receives the UPDATED latent and its destination ID,
+        including CLEAN. Its FP32 output is validated before snapshot storage.
         """
         if initial_latent.ndim != 4 or min(initial_latent.shape) < 1 or not initial_latent.is_floating_point():
             raise ValueError("initial latent must be nonempty floating BCHW")
@@ -56,6 +60,13 @@ class DDIMSampler:
         for t, s in zip(levels, levels[1:]):
             epsilon = predict_guided_noise(self.predict_noise, current, t, prompt_embeddings, guidance_scale)
             current = ddim_sampling_step(current, epsilon, coefficients[t], coefficients[s])
+            if after_step is not None:
+                updated = after_step(current, s)
+                if (not isinstance(updated, Tensor) or updated.shape != current.shape
+                        or updated.device != current.device or updated.dtype != torch.float32
+                        or not torch.isfinite(updated).all()):
+                    raise ValueError("after_step must return finite FP32 latents with unchanged shape/device")
+                current = updated
             if states is not None:
                 states[s] = current.to(trajectory_device).clone()
         return SamplingResult(current, levels, MappingProxyType(states) if states is not None else None)

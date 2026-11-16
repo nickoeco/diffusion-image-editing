@@ -27,3 +27,29 @@ def reconstruction_metrics(reference: Tensor, reconstruction: Tensor) -> dict[st
     if not math.isfinite(ssim):
         raise RuntimeError("SSIM produced a nonfinite value")
     return {"psnr_db": psnr, "ssim": float(ssim)}
+
+
+def background_metrics(reference: Tensor, edited: Tensor, pixel_mask: Tensor) -> dict[str, float | int | None]:
+    """One RGB image: soft background weights (1-M), plus literal zero-mask pixels.
+
+    MAE/MSE denominators are 3*sum(weights), not the whole image area. An empty
+    region returns None. PSNR is +inf for a defined, exactly preserved background.
+    No perceptual metric is computed on artificially zeroed images.
+    """
+    from diffusion_editor.editing.mask import validate_mask
+    if reference.ndim != 4 or reference.shape[0] != 1 or reference.shape != edited.shape:
+        raise ValueError("background metrics require matching single-image BCHW tensors")
+    validate_mask(pixel_mask, 1, *reference.shape[-2:])
+    a, b = (image_to_tensor(x).detach().cpu().double() for x in (reference, edited))
+    mask = pixel_mask.detach().cpu().double()
+    weights = 1 - mask
+    weight = float(weights.sum())
+    zero = mask == 0
+    zero_count = int(zero.sum())
+    error = (a - b).abs()
+    mae = float((error * weights).sum() / (3 * weight)) if weight else None
+    mse = float((error.square() * weights).sum() / (3 * weight)) if weight else None
+    psnr = (math.inf if mse == 0 else -10 * math.log10(mse)) if mse is not None else None
+    zero_mae = float((error * zero).sum() / (3 * zero_count)) if zero_count else None
+    return {"background_weight_pixels": weight, "background_mae": mae, "background_psnr_db": psnr,
+            "zero_mask_pixels": zero_count, "zero_mask_mae": zero_mae}

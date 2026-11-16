@@ -4,6 +4,7 @@ import pytest
 import torch
 
 from diffusion_editor.evaluation.metrics import reconstruction_metrics
+from diffusion_editor.evaluation.metrics import background_metrics
 
 
 def test_identical_and_known_psnr():
@@ -30,3 +31,20 @@ def test_metrics_match_skimage_reference():
 def test_invalid_metric_inputs(bad):
     with pytest.raises(ValueError):
         reconstruction_metrics(torch.zeros(1, 3, 16, 16), bad)
+
+
+def test_background_denominator_and_empty_region():
+    original = torch.zeros(1, 3, 8, 8)
+    edited = torch.ones_like(original) * 0.2
+    mask = torch.zeros(1, 1, 8, 8)
+    mask[:, :, :, :4] = 1
+    metrics = background_metrics(original, edited, mask)
+    assert metrics["background_weight_pixels"] == 32
+    assert metrics["background_mae"] == pytest.approx(0.2)
+    assert metrics["background_psnr_db"] == pytest.approx(-20 * math.log10(0.2))
+    assert metrics["zero_mask_pixels"] == 32
+    empty = background_metrics(original, edited, torch.ones_like(mask))
+    assert empty["background_mae"] is None and empty["background_psnr_db"] is None
+    soft = background_metrics(original, edited, torch.ones_like(mask) * 0.5)
+    assert soft["background_mae"] == pytest.approx(0.2)
+    assert soft["zero_mask_mae"] is None
