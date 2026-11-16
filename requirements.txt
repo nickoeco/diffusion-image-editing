@@ -1,4 +1,4 @@
 # Install the CUDA/CPU torch wheels first; see README.
 # Gradio is optional: pip install -e ".[model,dev,evaluation,demo]".
-# OpenCV and plotting remain deferred.
+# The evaluation extra includes Matplotlib; OpenCV is not required.
 -e .[model,dev,evaluation]

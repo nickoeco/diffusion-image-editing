@@ -1,0 +1,45 @@
+schema_version: 1
+name: phase7
+samples:
+  - id: astronaut
+    image: assets/examples/astronaut.png
+    source_prompt: a portrait of an astronaut wearing a spacesuit
+    target_prompt: a black and white pencil drawing of an astronaut, detailed sketch, pencil shading on white paper
+    provenance: NASA public domain; see assets/examples/README.md
+  - id: coffee
+    image: assets/examples/coffee.png
+    mask: assets/examples/coffee_mask.png
+    source_prompt: a photo of a white ceramic cup filled with coffee on a wooden table
+    target_prompt: a black and white pencil drawing of a cup of coffee, detailed sketch, pencil shading on white paper
+    provenance: Rachel Michetti / Pikolo Espresso Bar, CC0; authored ellipse mask; see assets/examples/README.md
+studies:
+  - id: reconstruction_steps_plain
+    operation: reconstruct
+    samples: [astronaut, coffee]
+    axis: steps
+    values: [20, 50, 100]
+    base: {guidance: 1, inversion_guidance: 1, refinement_steps: 0}
+  - id: reconstruction_steps_refined
+    operation: reconstruct
+    samples: [astronaut, coffee]
+    axis: steps
+    values: [20, 50, 100]
+    base: {guidance: 1, inversion_guidance: 1, refinement_steps: 12}
+  - id: strength_global
+    operation: edit
+    samples: [astronaut, coffee]
+    axis: strength
+    values: [0.25, 0.5, 0.75, 1.0]
+    base: {steps: 50, guidance: 7.5, inversion_guidance: 1, refinement_steps: 0}
+  - id: guidance_global
+    operation: edit
+    samples: [astronaut, coffee]
+    axis: guidance
+    values: [3, 5, 7.5, 10]
+    base: {steps: 50, strength: 0.75, inversion_guidance: 1, refinement_steps: 0}
+  - id: mask_operations
+    operation: edit
+    samples: [coffee]
+    axis: mask_mode
+    values: [global, latent_only, latent_feather, pixel_only, latent_pixel, latent_feather_pixel]
+    base: {steps: 50, strength: 1, guidance: 7.5, inversion_guidance: 1, refinement_steps: 0, feather_radius: 4}
