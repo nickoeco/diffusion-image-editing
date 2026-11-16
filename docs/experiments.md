@@ -120,6 +120,25 @@ another diffusion run. Exact float masks, settings/hashes, grids, metrics and
 optional trajectories are retained. See `phase5-status.md`. This single-image
 check does not complete Phase 7's formal ablation/baseline requirements.
 
+## Phase 6 interface verification
+
+The local Gradio flow was exercised with an actual drawn diagonal mask on the
+600×400 coffee photograph, 50 steps, strength 1, reverse guidance 7.5, inversion
+guidance 1, seed 42 and both local preservation operations enabled. A separate
+full source reconstruction used guidance 1/1 and the existing residual-refined
+selection. This is UI/integration evidence, not a formal ablation.
+
+The successful browser run is stored in
+`outputs/demo/4d0cef5917ee43e9978205bac8f61ff6/`. Loading took 7.535 s and combined
+pipeline compute 40.138 s, excluding metrics, previews and saving. Full source
+reconstruction scored 25.656006 dB / 0.7398565 SSIM against the original; VAE-only
+scored 25.656064 dB / 0.7398561. The uncomposited edit background MAE was 0.0334535;
+final compositing preserved all 224,992 literal zero-mask pixels exactly. The
+15,008-pixel narrow stroke did not yield a convincing pencil drawing. Preservation
+scores do not establish target-prompt success. JSON/CSV, images, exact masks and
+the downloadable ZIP retain the settings and evidence. See `phase6-status.md` for
+the front-end initialization issue found and repaired during browser testing.
+
 ## Planned evaluation
 
 Phase 7 will evaluate reconstruction at 20/50/100 steps; strength at

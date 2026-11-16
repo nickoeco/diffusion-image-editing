@@ -10,7 +10,7 @@ Logging is configured by script entrypoints, not as an import side effect. Relat
 cache paths resolve against the process working directory; run from repository root.
 An explicit immutable model revision accompanies every load call.
 
-Future data flow: RGB image -> deterministic VAE encode -> source-conditioned
+Implemented data flow: RGB image -> deterministic VAE encode -> source-conditioned
 custom inversion -> trajectory indexed by explicit noise-level ID -> custom reverse
 sampling with target CFG -> aligned optional mask blending -> VAE decode -> optional
 pixel composite. The clean boundary needs its own identity, distinct from training
@@ -94,7 +94,7 @@ mapping and does not inherit a source reconstruction guarantee. Target edits
 intentionally change semantics, so original-latent MSE would penalize desired
 modifications. The repair performs no model training, new checkpoint loading,
 source-trajectory replay in sampling or pixel compositing
-in this repair. Phase 5 remains unstarted while fidelity is reviewed.
+in this repair. The user authorized Phase 5 after the fidelity review.
 
 ## Phase 5 local editing
 
@@ -117,3 +117,25 @@ masks, both uncomposited images and the independent operation flags. Background
 metrics are separate from whole-image reconstruction metrics. No UI or high-level
 Diffusers editing pipeline is introduced; prior reconstruction fidelity regression
 checks remain part of the full suite.
+
+## Phase 6 local demo
+
+`demo/app.py` builds the optional Gradio interface and owns presentation and useful
+error messages. `demo/inputs.py` validates oriented input images and masks; painted
+masks are the alpha union of RGBA paint layers, never the photographic composite.
+The canvas background must exactly match the original. Canvas mounting stays
+visible, including across operation changes, to avoid Gradio initialization races.
+
+`demo/service.py::DemoService` lazily loads one backend from the existing offline
+cache and reuses both custom pipeline wrappers. A lock serializes all model work;
+the Gradio queue also limits inference concurrency to one. UI settings become a
+validated immutable `DemoRequest`; there is no diffusion arithmetic in the UI.
+Editing and independent source reconstruction retain their separate numerical
+settings and output labels. Full source reconstruction is optional for edit runs.
+
+Each request saves a unique output directory and ZIP with PNGs, JSON/CSV metrics,
+input hashes, exact state IDs, model revision, software/device/dtype and timings.
+The server binds to 127.0.0.1 without a share link, permits downloads from the run
+output root, limits uploaded files to 20 MB and image sides to 1024 pixels.
+App construction loads no weights. HTTP checks are explicit `--run-demo` opt-ins;
+default unit tests exercise inputs and service with CPU fakes and no sockets.

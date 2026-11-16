@@ -77,6 +77,12 @@ existing work. Explain major architectural or dependency changes before making t
   actual end-to-end reconstruction and PSNR/SSIM against the VAE-only baseline.
 - Phases 4–5: strength endpoints, source/target separation, zero/full/partial/soft
   masks, invalid dimensions, matching timestep blends and final clean step.
+- Phase 6: paint-layer alpha extraction and stale-canvas rejection, lazy model
+  reuse, serialized inference, operation routing, useful errors and downloadable
+  images/JSON/CSV. HTTP/socket checks require `--run-demo`, independently of
+  `--run-integration` and `--run-gpu`. Canvas/lifecycle changes also require browser
+  verification of painting, progress and rendered outputs; API tests alone do not
+  establish front-end correctness.
 - Separate synthetic unit tests from real-weight/GPU tests. Report skipped and
   unexecuted integration checks honestly; mocks do not prove model compatibility.
 - Experiments must save inputs/masks/prompts, seed, model revision, software/device,

@@ -124,5 +124,6 @@ thin masks can disappear at latent resolution, and coarse masks can cut through
 objects. Existing color-edit reliability and high-guidance fidelity limitations
 remain. None is hidden by reporting only composited images.
 
-Phase 5 implementation and validation are ready for review. Phase 6 (Gradio) has
-not started. This phase's changes have not yet been committed or pushed.
+Phase 5 implementation and validation were committed and pushed as `3bb8253`
+(local editing implementation) and `1329640` (tests, example mask and evidence)
+before the user-authorized Phase 6 work began. See `phase6-status.md`.

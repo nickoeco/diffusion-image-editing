@@ -24,5 +24,8 @@ Reconstruction drift was addressed for the verified guidance-1 setting, with
 adverse-case fallback and documented high-guidance limits. The user subsequently
 authorized Phase 5: aligned masks, updated-ID source blending, feathering,
 independent pixel compositing and measured background preservation.
-Phase 6 has not started. See `reconstruction-drift.md` and the phase status records for
+Phase 5 was committed and pushed as `3bb8253` and `1329640` before Phase 6 began.
+Phase 6 adds the local Gradio app, alpha-based drawing, cached serial inference,
+downloadable images/reports and explicit HTTP/real-weight checks. Phase 7 has not
+started. See `reconstruction-drift.md` and the phase status records for
 executed verification and AGENTS.md for binding constraints and test acceptance details.

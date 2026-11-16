@@ -2,8 +2,8 @@
 
 A Computer Vision course project using pretrained Stable Diffusion 1.5 with custom
 DDIM inversion, reverse sampling, Classifier-Free Guidance (CFG), and mask-guided
-latent blending. **Phase 5 adds aligned binary/soft masks, timestep-matched latent
-blending, feathering and independently configurable final pixel compositing.**
+latent blending. **Phase 6 adds a local Gradio interface for uploaded or painted
+masks, reconstruction, global/local editing and downloadable run artifacts.**
 All future changes must
 follow [AGENTS.md](AGENTS.md).
 
@@ -54,13 +54,13 @@ script to check the driver and actual PyTorch CUDA availability.
 Pinned versions include torch 2.5.1, torchvision 0.20.1, diffusers 0.35.1,
 transformers 4.44.2, accelerate 1.0.1, safetensors 0.6.2, huggingface-hub 0.34.4,
 and numpy 1.26.4. This combination passed Phase 1 CUDA component integration tests
-on the recorded machine; downstream DDIM/editing behavior remains unverified.
+on the recorded machine; DDIM/editing verification is recorded in the phase reports.
 Direct dependencies are pinned. A [tested Windows/Python 3.11/CUDA 12.4 constraints
 snapshot](configs/constraints-windows-py311-cu124.txt) records the installed versions.
 Use it with `pip install -c configs/constraints-windows-py311-cu124.txt -r requirements.txt`
 after installing the CUDA torch wheels. It is not a cross-platform lockfile.
-Phase 3 adds scikit-image 0.25.2 for SSIM. Gradio, OpenCV and plotting libraries
-will be introduced in later phases.
+Phase 3 adds scikit-image 0.25.2 for SSIM. Phase 6 adds optional Gradio 5.49.1;
+OpenCV and plotting libraries remain deferred.
 
 ## Model setup and smoke checks
 
@@ -106,17 +106,17 @@ src/diffusion_editor/
   editing/                Strength, binary/soft masks, latent blend, pixel composite
   pipelines/              Reconstruction, global and local source/target editing
   evaluation/             PSNR/SSIM; experiment orchestration planned
-  demo/                   Planned: Gradio interface
+  demo/                   Local Gradio UI, validated inputs and cached-model service
   utils/                  Environment diagnostics and logging
 scripts/                  Environment checks, component forward, reference generation
 tests/                    Offline CPU unit tests
 docs/                     Architecture, mathematical contracts, roadmap, experiment records
-assets/examples/          Future input examples with provenance and usage permissions
+assets/examples/          Example inputs and masks with recorded provenance
 outputs/                  Runtime artifacts excluded from version control
 ```
 
 Global and local editing are available through `scripts/run_edit.py`.
-The demo and formal experiment commands are not implemented. See the
+The Gradio demo is available below; formal experiment commands remain pending. See the
 [roadmap](docs/roadmap.md) for development gates.
 
 ## Phase 1: VAE and text conditioning
@@ -341,12 +341,63 @@ With feathering, zero-support preservation refers to the expanded effective mask
 the report also evaluates the original requested mask. See the
 [Phase 5 report](docs/phase5-status.md) for measured effects and limitations.
 
+## Phase 6: local Gradio demo
+
+Install the optional interface into the model environment, then launch from the
+repository root after caching the pinned model weights:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[model,evaluation,demo,dev]"
+.\.venv\Scripts\python.exe -m diffusion_editor.demo.app
+```
+
+Open http://127.0.0.1:7860. The app binds only to loopback, creates no public share
+link, requires offline configuration and loads cached model components on the
+first run. Later runs reuse them; inference is serialized. Stop with Ctrl+C.
+Use `--port 7861`, `--config configs/default.yaml` or `--output-dir outputs/demo`
+to override launch settings. No weights download automatically.
+
+1. Upload an RGB image or load the included coffee example. Dimensions must be
+   divisible by the VAE factor (8 for this model), between 8 and 1024 pixels per
+   side; around 512 is recommended. Inputs are never silently resized or cropped.
+2. Choose Local edit, Global edit or Reconstruct source. Set source/target prompts,
+   sampling steps, strength, guidance and seed.
+3. For local editing, choose **Upload** for an aligned grayscale mask or **Draw**
+   and paint over the original. White/painted regions edit. The canvas stays visible
+   to avoid a Gradio hidden-canvas initialization issue; the unused mask is ignored.
+   Brush, erase, undo and clear controls are available. Changing the original
+   clears the uploaded mask and painting to prevent stale alignment.
+4. Feathering, latent blending and original-background pixel compositing are
+   independent controls. Advanced settings optionally calculate full source
+   reconstruction and decoded-latent previews. Full reconstruction uses guidance
+   1 independently of editing guidance and is slower with residual correction.
+5. Run and inspect the original, VAE baseline, optional full DDIM reconstruction,
+   edit, matched source control and effective mask. Download the result PNG or ZIP
+   containing images, prompts/settings, JSON/CSV metrics and environment/timings.
+
+Artifacts use isolated directories under `outputs/demo/<run-id>/`. The report
+separates loading time from pipeline compute time; compute excludes metrics,
+preview decoding, image saving and archive creation. PSNR/SSIM measure preservation,
+not prompt alignment. Seed is recorded, but deterministic inversion adds no random
+noise, so changing it alone need not change the image. Data and cached weights stay
+on the local server. This demo has no authentication and is intended for local use.
+
+HTTP checks require local sockets and are a separate opt-in from offline tests:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q --run-demo
+# Include cached real-model and CUDA checks:
+.\.venv\Scripts\python.exe -m pytest -q --run-demo --run-integration --run-gpu
+```
+
+See [Phase 6 validation](docs/phase6-status.md) for executed evidence and limitations.
+
 ## Known limitations
 
 Offline synthetic tests verify tensor contracts and equations; actual pretrained
 verification is tracked separately in the phase status records. DDIM inversion is
 approximate, and the VAE introduces reconstruction error. Latent masks cannot
-guarantee exact pixel preservation; final pixel compositing will be independently
+guarantee exact pixel preservation; final pixel compositing is independently
 configurable. Project completion is governed by the definition of done in AGENTS.md.
 The historical plain-DDIM natural-image smoke shows substantial reconstruction
 drift. Residual refinement addresses the measured cases, with an explicit fallback

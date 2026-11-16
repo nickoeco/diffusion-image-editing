@@ -1,7 +1,7 @@
 # Implementation status and mathematical contracts
 
-Phases 1–5 implement VAE/text conditioning, DDIM inversion, reverse sampling,
-manual CFG, reconstruction, global editing and mask-guided local editing.
+Phases 1–6 implement VAE/text conditioning, DDIM inversion, reverse sampling,
+manual CFG, reconstruction, global/local editing and a local Gradio interface.
 `models/sd_backend.py::SDBackend.load` loads model configuration and weights;
 `resolve_runtime` selects device/dtype. Scheduler configuration is loaded with
 `DDIMScheduler.from_pretrained`; custom mathematics never calls its step method.
@@ -334,9 +334,38 @@ by positive region weight). No regional perceptual score is computed on zeroed
 images. The CLI records requested-mask and effective-mask background scores,
 uncomposited/final images and exact float masks.
 
+## Gradio request and artifact contracts (implemented)
+
+`demo/inputs.py::normalize_image` EXIF-orients and converts originals to RGB.
+`resolve_mask` requires aligned L/1 uploads or RGBA paint layers matching the
+original size. Draw mode checks the canvas background against original RGB pixels
+and combines layer alpha as `1-product(1-alpha_i)`, independent of paint color and
+the composited photograph. Empty painting is an actionable error; an explicitly
+uploaded all-zero mask remains a valid preservation control.
+
+`DemoRequest` validates mode, prompts, finite parameters, integer steps/seed and
+boolean switches. `DemoService.run` rejects missing/misaligned masks before loading
+models, bounds image sides to 8–1024, then checks the actual VAE spatial factor.
+The first valid run initializes a cached backend and subsequent runs reuse it under
+a lock. The process seed is set and recorded. Local/global modes call our editor;
+Reconstruct source calls our reconstruction pipeline. Optional full reconstruction
+on edit runs uses guidance 1/1, with separately enabled residual correction and
+the existing plain/refined latent-MSE selection. Editing stays on plain inversion.
+
+Reports distinguish the matched editing source control from full source
+reconstruction. Optional raw-latent previews use actual stored IDs and are labelled
+as decoded latents, not clean predictions. Timing excludes metric calculation,
+preview decoding and saving; model initialization is reported separately. Outputs
+include input/output PNGs, effective/entered masks, exact float masks, a comparison
+grid, parameters, hashes, state IDs, environment, device/dtype and peak CUDA memory.
+JSON encodes infinite/undefined scores as null; CSV retains numeric infinities.
+Regional denominators remain those defined above, with both effective-mask and
+requested-mask evaluations. A ZIP bundles each unique run; errors remain visible
+in the UI and logged with their traceback. The UI does not download model weights.
+
 ## Later phases (not implemented)
 
-Gradio UI and formal experiment orchestration remain Phase 6/7 work.
+Formal experiment orchestration and baseline comparison remain Phase 7 work.
 
 Each later phase must replace these planned descriptions with actual function references,
 tested timestep conventions, tensor contracts and evidence.
