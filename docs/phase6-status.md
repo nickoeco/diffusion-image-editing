@@ -2,7 +2,7 @@
 
 Date: 2026-11-15. Phase 5 was logically committed and pushed first:
 `3bb8253` adds mask-guided editing; `1329640` records tests, masks and evidence.
-The user then authorized Phase 6. Phase 7 has not started.
+The user then authorized Phase 6. Phase 7 had not started at that phase's gate.
 
 ## Purpose, inputs and outputs
 

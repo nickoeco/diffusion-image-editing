@@ -139,3 +139,30 @@ The server binds to 127.0.0.1 without a share link, permits downloads from the r
 output root, limits uploaded files to 20 MB and image sides to 1024 pixels.
 App construction loads no weights. HTTP checks are explicit `--run-demo` opt-ins;
 default unit tests exercise inputs and service with CPU fakes and no sockets.
+
+## Phase 7 evaluation
+
+`evaluation/experiment_config.py` expands strict YAML studies into immutable cases
+without importing ML libraries. A study changes one declared axis; IDs are safe
+directory names and all settings are validated before execution. Paths resolve
+against the explicit project root. Sample provenance is required.
+
+`evaluation/experiments.py::ExperimentRunner` freezes inputs, hashes configuration,
+source files, model revision and runtime, then reuses one cached backend for serial
+custom-pipeline calls. It records measured U-Net forwards/batch elements with a
+temporary hook, plus actual inversion/sampling IDs and refinement diagnostics.
+The runner performs no diffusion arithmetic. Existing completed cases require
+explicit compatible resume and checksum validation. Errors remain failed cases.
+
+`evaluation/artifacts.py` measures floating outputs before quantization, writes
+PNGs/CSV/strict JSON and retains masks. `evaluation/records.py` owns lightweight
+JSON/integrity checks; `evaluation/report.py` rebuilds tables, grids and headless
+Matplotlib PNG/SVG curves from saved reports without model loading. Undefined and
+infinite PSNR values are distinguished; plotted nonfinite points are omitted.
+
+Only `scripts/run_img2img_baseline.py` constructs the labelled built-in Img2Img
+pipeline. It matches completed global custom cases, their input pixels, weights,
+prompts, guidance and actual reverse IDs. FP32 VAE codec execution surrounds the
+pipeline's supported latent input/output; random noising and reverse diffusion
+remain built-in. Its random posterior/noise, update precision and lack of inversion
+or a control branch are declared differences. Core modules never import it.

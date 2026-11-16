@@ -83,6 +83,14 @@ existing work. Explain major architectural or dependency changes before making t
   `--run-integration` and `--run-gpu`. Canvas/lifecycle changes also require browser
   verification of painting, progress and rendered outputs; API tests alone do not
   establish front-end correctness.
+- Phase 7: validate one-variable study expansion, frozen inputs, exact run/state
+  IDs, measured U-Net budgets, strict resume compatibility and artifact integrity.
+  Execute at least two controlled ablations and a clearly labelled built-in
+  baseline. Record matched reverse budgets and any unequal total work or precision.
+  Use a fixed requested mask to compare background preservation across feathered
+  and unfeathered cases; report effective-mask metrics separately. Keep plots,
+  per-case evidence and unsuccessful semantic outcomes. Baseline pipelines must
+  remain confined to explicitly labelled scripts.
 - Separate synthetic unit tests from real-weight/GPU tests. Report skipped and
   unexecuted integration checks honestly; mocks do not prove model compatibility.
 - Experiments must save inputs/masks/prompts, seed, model revision, software/device,

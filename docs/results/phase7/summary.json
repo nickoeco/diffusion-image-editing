@@ -1,0 +1,29 @@
+{
+  "planned_cases": 34,
+  "completed_cases": 34,
+  "missing_cases": [],
+  "studies": {
+    "reconstruction_steps_plain": {
+      "completed": 6,
+      "planned": 6
+    },
+    "reconstruction_steps_refined": {
+      "completed": 6,
+      "planned": 6
+    },
+    "strength_global": {
+      "completed": 8,
+      "planned": 8
+    },
+    "guidance_global": {
+      "completed": 8,
+      "planned": 8
+    },
+    "mask_operations": {
+      "completed": 6,
+      "planned": 6
+    }
+  },
+  "baseline_cases": 4,
+  "note": "Descriptive per-image results. No prompt-alignment metric or statistical significance claim; do not credit pixel compositing as a latent gain."
+}

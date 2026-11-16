@@ -2,8 +2,8 @@
 
 A Computer Vision course project using pretrained Stable Diffusion 1.5 with custom
 DDIM inversion, reverse sampling, Classifier-Free Guidance (CFG), and mask-guided
-latent blending. **Phase 6 adds a local Gradio interface for uploaded or painted
-masks, reconstruction, global/local editing and downloadable run artifacts.**
+latent blending. **Phase 7 adds reproducible ablations, automatic grids/plots and
+a separately labelled Diffusers Img2Img baseline, alongside the local Gradio UI.**
 All future changes must
 follow [AGENTS.md](AGENTS.md).
 
@@ -59,8 +59,8 @@ Direct dependencies are pinned. A [tested Windows/Python 3.11/CUDA 12.4 constrai
 snapshot](configs/constraints-windows-py311-cu124.txt) records the installed versions.
 Use it with `pip install -c configs/constraints-windows-py311-cu124.txt -r requirements.txt`
 after installing the CUDA torch wheels. It is not a cross-platform lockfile.
-Phase 3 adds scikit-image 0.25.2 for SSIM. Phase 6 adds optional Gradio 5.49.1;
-OpenCV and plotting libraries remain deferred.
+Phase 3 adds scikit-image 0.25.2 for SSIM, Phase 6 adds optional Gradio 5.49.1,
+and Phase 7 adds Matplotlib 3.10.7 to the evaluation extra. OpenCV is not required.
 
 ## Model setup and smoke checks
 
@@ -105,7 +105,7 @@ src/diffusion_editor/
   diffusion/              Schedule, inversion, reverse sampler, manual CFG
   editing/                Strength, binary/soft masks, latent blend, pixel composite
   pipelines/              Reconstruction, global and local source/target editing
-  evaluation/             PSNR/SSIM; experiment orchestration planned
+  evaluation/             Metrics, strict study plans, batch runner and reports
   demo/                   Local Gradio UI, validated inputs and cached-model service
   utils/                  Environment diagnostics and logging
 scripts/                  Environment checks, component forward, reference generation
@@ -116,7 +116,7 @@ outputs/                  Runtime artifacts excluded from version control
 ```
 
 Global and local editing are available through `scripts/run_edit.py`.
-The Gradio demo is available below; formal experiment commands remain pending. See the
+The Gradio demo and reproducible experiment commands are available below. See the
 [roadmap](docs/roadmap.md) for development gates.
 
 ## Phase 1: VAE and text conditioning
@@ -392,6 +392,57 @@ HTTP checks require local sockets and are a separate opt-in from offline tests:
 
 See [Phase 6 validation](docs/phase6-status.md) for executed evidence and limitations.
 
+## Phase 7: reproducible evaluation
+
+The checked-in [experiment plan](configs/experiments/phase7.yaml) contains 34 custom
+runs: plain/refined reconstruction at 20/50/100 steps; global strength at
+0.25/0.5/0.75/1; guidance at 3/5/7.5/10; and six mask-operation controls. Two public
+images are used for reconstruction/global studies; the mask study uses the authored
+coffee ellipse. Each study varies one declared axis while keeping other settings
+and input pixels fixed. Mask presets provide explicit pairwise controls for latent
+blending, feathering and pixel compositing.
+
+```powershell
+# Validate and inspect without loading ML libraries or downloading weights:
+.\.venv\Scripts\python.exe scripts/run_experiments.py --dry-run
+# Offline model execution; the evaluation extra includes Matplotlib:
+.\.venv\Scripts\python.exe scripts/run_experiments.py --output-dir outputs/experiments/phase7
+# Baseline only: same weights, target prompts, guidance and actual reverse grids:
+.\.venv\Scripts\python.exe scripts/run_img2img_baseline.py outputs/experiments/phase7
+# Rebuild tables, grids and PNG/SVG plots from verified saved artifacts:
+.\.venv\Scripts\python.exe scripts/summarize_experiments.py outputs/experiments/phase7
+```
+
+Existing nonempty experiment directories are rejected unless `--resume` is given.
+Resume requires the same suite, input hashes, source code, model config, packages
+and runtime signature; completed artifacts are verified before reuse. Inputs are
+frozen under `inputs/`. Each `runs/<case-id>/` contains original/VAE/output/control
+PNGs, masks where applicable, a grid, `report.json` and `metrics.csv`. Reports retain
+actual timestep IDs, source refinement diagnostics, selected method, U-Net forward
+and batch-element counts, device/dtype, runtime and peak CUDA allocation. Failures
+produce `error.json` and propagate; they are not counted as completed runs.
+
+The labelled baseline samples the VAE posterior and adds random Gaussian noise,
+then calls Diffusers' Img2Img pipeline with DDIM eta=0. It uses supported latent
+input/output so the shared VAE remains FP32. It does not perform our source
+inversion, latent blending or source-control branch. At strengths 0.5/1 and 50
+steps, baseline and custom reverse grids match exactly; total U-Net work differs
+and is reported explicitly. Baseline update precision also follows Diffusers'
+inference dtype. Neither runtime superiority nor prompt-alignment improvement is
+implied by this comparison. The script loads no new model/safety-checker weights
+and is a fixed-input offline evaluation, not a deployment pipeline.
+
+Metric definitions and executed evidence are maintained in
+[experiments](docs/experiments.md) and the [Phase 7 report](docs/phase7-status.md).
+The fixed **requested mask** provides a common regional denominator across mask
+variants; effective-mask scores separately describe expanded feather support.
+PSNR/SSIM measure preservation, not whether an edit matches its target prompt.
+The two-image, single-seed study does not establish statistical generalization.
+
+Executed evidence: **34 custom cases, four baseline cases and five completed
+studies**, with full tests passing. Browse the [portable measured-result bundle](docs/results/phase7/README.md)
+for CSV/JSON, vector plots and example grids.
+
 ## Known limitations
 
 Offline synthetic tests verify tensor contracts and equations; actual pretrained
@@ -402,4 +453,5 @@ configurable. Project completion is governed by the definition of done in AGENTS
 The historical plain-DDIM natural-image smoke shows substantial reconstruction
 drift. Residual refinement addresses the measured cases, with an explicit fallback
 for adverse roundtrips; passing equation tests alone does not imply fidelity. No editing quality,
-general improvement or completed Phase 7 ablation is claimed.
+general editing-quality improvement is claimed. Executed Phase 7 ablations are
+limited to the recorded inputs/settings and include changed geometry and failures.

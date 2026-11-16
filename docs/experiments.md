@@ -139,23 +139,40 @@ scores do not establish target-prompt success. JSON/CSV, images, exact masks and
 the downloadable ZIP retain the settings and evidence. See `phase6-status.md` for
 the front-end initialization issue found and repaired during browser testing.
 
-## Planned evaluation
+## Phase 7 executed controlled evaluation
 
-Phase 7 will evaluate reconstruction at 20/50/100 steps; strength at
-0.25/0.50/0.75/1.0; guidance at 3/5/7.5/10; global versus latent blending versus
-feathering versus optional pixel compositing; and a clearly labelled Diffusers
-Img2Img/Inpainting baseline with comparable budgets. At least two executed
-ablations are required before claiming project completion.
+The fixed plan `configs/experiments/phase7.yaml` completed all **34 custom cases**
+and **four labelled Diffusers DDIM Img2Img baseline cases** using the same cached
+pinned revision. Two images and seed 42 were held fixed within each study. The
+five studies cover plain/refined 20/50/100-step reconstruction, strength
+0.25/0.5/0.75/1, guidance 3/5/7.5/10 and six mask-operation controls. This exceeds
+the two-executed-ablation requirement; it does not establish broad generalization.
 
-Use simple localized edits first and record example provenance. Separate VAE-only
-loss from inversion+reverse loss. PSNR and SSIM start with RGB float [0,1] and
-explicit data range 1. For background MAE use an explicitly defined background
-mask and divide summed absolute error by the number of background channel values.
-An empty evaluation region is undefined and must not produce a misleading zero.
-Do not compute regional perceptual scores by zeroing out other pixels.
+Plain reconstruction PSNR increased from 15.373 to 19.158 dB (astronaut) and
+16.450 to 20.690 dB (coffee) between 20 and 100 steps. Refined-selected outputs
+remained near their VAE-only references, with eight times as many U-Net forwards
+in these runs and retained residual-tolerance warnings. Higher strength/guidance
+reduced preservation in the measured editing series. At full strength, pencil-like
+rendering appeared with substantial composition/geometry changes.
 
-Every run must save image, mask, prompts, seed, model ID/revision, software versions,
-hardware/dtype, step schedule, guidance, strength, blending/composite settings,
-runtime, generated outputs and JSON/CSV metrics. CLIP/LPIPS are optional and must
-record their model identifiers. Actual results, grids and plots will be added only
-after execution; pixel compositing must not be credited as a latent-algorithm gain.
+Using the fixed coffee requested-background region, global MAE was 0.256230,
+latent-only 0.042941 and feathered-latent 0.035132. Hard pixel compositing gave
+exact zero background error; feathered latent+pixel gave 0.000292 because support
+expands beyond the original region. Effective-mask metrics are separate and
+literal zero-support pixels remain exact. Compositing is not a latent-algorithm
+improvement, and preservation metrics do not rank prompt alignment.
+
+The baseline matches 25/50 reverse updates at strengths 0.5/1 but performs 25/50
+total forwards versus custom 100/150 including inversion and source control.
+Random posterior/noising and FP16 baseline latent updates also differ. Custom
+preservation scores were higher on these four pairs; this does not establish
+equal-cost or semantic superiority. No inpainting checkpoint was downloaded.
+
+All runs save inputs, masks, prompts, seed, model/revision, source/software identity,
+settings, actual IDs/budgets, runtime, outputs and CSV/JSON metrics. The manifest
+and frozen inputs support strict checksum-verified resume. Raw records, five
+PNG/SVG curves, per-study grids and baseline grids are in
+`outputs/experiments/phase7/`. A portable [review bundle](results/phase7/README.md)
+includes aggregate CSV/JSON, plots and explicitly resized JPEG previews.
+See [the complete Phase 7 report](phase7-status.md) for tables, actual validation
+totals, metric denominators and remaining limitations. CLIP/LPIPS were not run.

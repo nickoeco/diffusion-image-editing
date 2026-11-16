@@ -1,7 +1,7 @@
 # Implementation status and mathematical contracts
 
-Phases 1–6 implement VAE/text conditioning, DDIM inversion, reverse sampling,
-manual CFG, reconstruction, global/local editing and a local Gradio interface.
+Phases 1–7 implement VAE/text conditioning, DDIM inversion, reverse sampling,
+manual CFG, reconstruction, global/local editing, Gradio and reproducible evaluation.
 `models/sd_backend.py::SDBackend.load` loads model configuration and weights;
 `resolve_runtime` selects device/dtype. Scheduler configuration is loaded with
 `DDIMScheduler.from_pretrained`; custom mathematics never calls its step method.
@@ -363,12 +363,48 @@ Regional denominators remain those defined above, with both effective-mask and
 requested-mask evaluations. A ZIP bundles each unique run; errors remain visible
 in the UI and logged with their traceback. The UI does not download model weights.
 
-## Later phases (not implemented)
+## Reproducible study execution (Phase 7)
 
-Formal experiment orchestration and baseline comparison remain Phase 7 work.
+`ExperimentSuite.cases` expands each study's sample IDs and values by changing
+only its named `RunSettings` field. The checked-in plan separates plain and
+residual-refined reconstruction so refinement is fixed within each step study.
+Strength/guidance studies keep plain source inversion fixed. The categorical mask
+study has global, latent-only, feathered-latent, pixel-only, latent+pixel and
+feathered-latent+pixel controls. Pairwise comparisons isolate individual switches;
+comparisons changing several switches must not be described as single effects.
 
-Each later phase must replace these planned descriptions with actual function references,
-tested timestep conventions, tensor contracts and evidence.
+Inputs are copied and checksum-verified before model loading. Each case resets
+the declared seed, synchronizes CUDA around pipeline work and counts actual U-Net
+forwards and batch elements. Timing excludes loading, metrics and saving; no
+dedicated warmup is run, so first-case/shape overhead can remain. These are
+descriptive timings, not matched-total-cost performance claims. The runner stores
+actual returned IDs and selection rather than inferring states from list offsets.
+
+JSON reports bind input/model/source/software identity and artifact checksums.
+Explicit resume accepts only identical identity and unchanged completed artifacts.
+A partial run can be summarized with missing cases identified, without treating
+them as successes. Rebuilding figures reads measured metrics, never re-scores
+quantized PNGs. Curves use actual numeric axis values; categorical mask modes are
+labelled explicitly. No error bars or significance are invented for single-seed
+per-image measurements.
+
+The fixed requested mask uses the same denominator for global, latent and feather
+comparisons. Effective-mask metrics remain separate. Whole-image original/VAE/
+source-control/output and pre-composite outputs are independently available.
+No regional SSIM or LPIPS is calculated by zeroing background. JSON null scores
+with `nonfinite_metrics=positive_infinity` denote exact matches; other null region
+scores remain undefined. Per-case CSV retains infinities.
+
+The baseline explicitly uses `StableDiffusionImg2ImgPipeline`, the shared DDIM
+scheduler with clean alpha=1, random VAE posterior sampling and Gaussian noise.
+FP32 VAE encode/decode uses its supported four-channel latent input and latent
+output, preserving the project's model precision policy. Actual callback IDs and
+measured forward counts must match the selected reverse budget. Baseline floor
+strength selection and custom ceil selection differ at some values; this
+comparison deliberately uses matching 0.5/1 endpoints at 50 steps and rejects
+mismatched budgets. It records different total work and pipeline latent precision.
+
+See `phase7-status.md` and `experiments.md` for executed results and limitations.
 
 References: [DDIM paper](https://arxiv.org/abs/2010.02502),
 [Classifier-Free Guidance](https://arxiv.org/abs/2207.12598).
