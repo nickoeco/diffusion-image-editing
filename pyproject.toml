@@ -18,6 +18,7 @@ model = [
 dev = ["pytest==8.4.2"]
 test = ["pytest==8.4.2", "torch==2.5.1", "numpy==1.26.4", "Pillow==11.3.0", "scikit-image==0.25.2"]
 evaluation = ["scikit-image==0.25.2"]
+demo = ["gradio==5.49.1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -27,4 +28,5 @@ testpaths = ["tests"]
 markers = [
   "integration: explicit opt-in real pretrained model checks",
   "gpu: explicit opt-in CUDA tensor checks",
+  "demo: explicit opt-in local Gradio server checks",
 ]

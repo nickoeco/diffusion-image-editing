@@ -1,3 +1,4 @@
-# Install the CUDA/CPU torch wheels first; see README. Later-phase libraries
-# (Gradio, OpenCV and plotting) are deliberately deferred.
+# Install the CUDA/CPU torch wheels first; see README.
+# Gradio is optional: pip install -e ".[model,dev,evaluation,demo]".
+# OpenCV and plotting remain deferred.
 -e .[model,dev,evaluation]
