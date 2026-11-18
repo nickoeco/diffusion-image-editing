@@ -471,3 +471,13 @@ drift. Residual refinement addresses the measured cases, with an explicit fallba
 for adverse roundtrips; passing equation tests alone does not imply fidelity. No editing quality,
 general editing-quality improvement is claimed. Executed Phase 7 ablations are
 limited to the recorded inputs/settings and include changed geometry and failures.
+
+## Text-to-image interface
+
+The demo offers four tabs: **Text to image**, **Local edit**, **Global edit** and
+**Reconstruction**, each retaining its own inputs and results. The txt2img tab and
+`/txt2img` API support prompt/negative prompt, dimensions, steps, CFG, seed, generated
+image and PNG/ZIP downloads. It uses our custom DDIM sampler and cached components,
+without an original image, mask or inversion. Restart the demo process to load
+the new layout. See [usage, API and verification limits](docs/txt2img-demo.md)
+and [tab behavior and browser validation](docs/demo-tabs.md).

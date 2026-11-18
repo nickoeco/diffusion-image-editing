@@ -180,3 +180,25 @@ PNG/SVG curves, per-study grids and baseline grids are in
 includes aggregate CSV/JSON, plots and explicitly resized JPEG previews.
 See [the complete Phase 7 report](phase7-status.md) for tables, actual validation
 totals, metric denominators and remaining limitations. CLIP/LPIPS were not run.
+
+## Text-to-image interface checks (2026-11-18)
+
+The separately requested txt2img UI/API was checked with synthetic CPU components:
+39 focused offline checks passed (four opt-in skips), and 41 focused checks passed
+with local HTTP enabled (two real-model skips). The endpoint generated/downloaded
+synthetic outputs and reported seed, dimensions, state IDs and hashes. No real
+checkpoint/GPU check, browser-generated result, semantic rating or new acceptance
+case was executed. Browser automation stopped on uncertain URL recognition.
+These initial checks are interface/mathematical contracts only; they do not alter the
+calibration comparison or attention gate. See `txt2img-demo.md` for details.
+
+## Four-tab UI follow-up (2026-11-18)
+
+The tabbed interface's focused CPU/HTTP suite passed 43 checks with two real-model
+skips. A separate in-app-browser smoke visited all four modes, completed synthetic
+CPU operations, retained distinct prompts/results across switches and preserved
+the local paint layer/toolbars. Painting and local execution worked after return.
+This later check completes the tab UI/lifecycle smoke; it does not turn the earlier
+synthetic outputs into pretrained or acceptance evidence. The temporary server
+was stopped and no research run or production server was changed. See
+`demo-tabs.md` for the screenshot, API mapping and precise test scope.

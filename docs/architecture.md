@@ -179,3 +179,19 @@ prompts, guidance and actual reverse IDs. FP32 VAE codec execution surrounds the
 pipeline's supported latent input/output; random noising and reverse diffusion
 remain built-in. Its random posterior/noise, update precision and lack of inversion
 or a control branch are declared differences. Core modules never import it.
+
+## User-requested text-to-image interface
+
+`pipelines/generation.py` composes text conditioning, model-configured Gaussian
+initialization, our DDIM sampler/CFG and FP32 VAE decoding. `DemoService.generate`
+has a separate validated request/result contract, sharing the existing offline
+model cache, inference lock and Gradio concurrency group with editing. The UI adds
+an independent text-generation tab and `/txt2img` endpoint. Generation metadata/files are separate; no source-reference
+metrics or research/acceptance claims are synthesized. See `txt2img-demo.md`.
+
+The four-tab UI builds independent editor forms through one helper, sharing the
+same service/cache/queue. Each form has separate upload state and output controls,
+with scoped element IDs/CSS. Only Local edit creates an ImageEditor; Local edit
+is initially selected and all tab children remain mounted. Tab navigation has no
+server callbacks that clear values or trigger inference. See `demo-tabs.md` for
+the executed browser paint/switch and API regression checks.

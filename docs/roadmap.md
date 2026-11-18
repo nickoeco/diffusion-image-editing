@@ -53,3 +53,17 @@ the default, with unselected computation skipped. Existing pipeline defaults and
 semantic acceptance tooling remain intact. See `demo-controls.md` for focused
 compute-budget, HTTP and browser validation; these UI changes make no semantic
 acceptance claim.
+
+The user separately requested a txt2img demo interface. A custom-sampler generation
+pipeline, independent panel and `/txt2img` API now support prompt-only generation
+and downloads. CPU and HTTP contracts passed; at that initial delivery the
+pretrained/GPU smoke and completed browser check were unexecuted. This UI utility does not advance or replace the
+registered full-trajectory calibration comparison or any acceptance gate. See
+`txt2img-demo.md`; the pre-existing demo process must be restarted to load the UI.
+
+A subsequent user request separates the UI into four persistent operation tabs.
+Independent form state, scoped controls and one shared backend keep switching
+simple without losing prior work. CPU/HTTP checks passed 43 tests; an in-app
+browser confirmed all modes, result retention and paint/switch lifecycle behavior.
+Real-model/GPU generation remains unexecuted for these UI changes. See
+`demo-tabs.md`; no calibration or acceptance gate was advanced.

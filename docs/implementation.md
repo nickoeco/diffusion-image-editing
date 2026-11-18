@@ -435,3 +435,25 @@ See `phase7-status.md` and `experiments.md` for executed results and limitations
 
 References: [DDIM paper](https://arxiv.org/abs/2010.02502),
 [Classifier-Free Guidance](https://arxiv.org/abs/2207.12598).
+
+## Text-to-image orchestration
+
+`TextToImagePipeline.generate` draws FP32 CPU noise using a local seeded generator,
+with shape `[1,vae.latent_channels,H/f,W/f]` and scheduler `init_noise_sigma`.
+It encodes conditional B or paired CFG 2B text through the existing helper, then
+samples from the highest actual selected ID through clean -1 using our eta=0
+equations. No source image, VAE encode, inversion or calibrated embedding is used.
+The FP32 VAE decodes the final latent into RGB BCHW [0,1]. Dimensions, finite
+guidance/prior scale, prompt and seed are validated. This is a Gaussian-prior
+generation convention, not an exact-inversion claim. The demo saves noise/output
+hashes, actual state IDs, settings and runtime; source-reference metrics are null.
+See `txt2img-demo.md` for the API and explicit test/verification scope.
+
+The UI has separate Text to image, Local edit, Global edit and Reconstruction
+tabs. `create_app` builds three independent editor forms with one helper; global
+and reconstruction forms use hidden state instead of extra paint canvases. Mode
+fields are fixed/hidden in the UI, legacy APIs remain compatible, and new per-tab
+APIs have distinct suffixes. Scoped CSS avoids duplicate IDs or cross-tab hiding.
+`render_children=True` retains initialized controls across switches, with Local
+edit initially selected. Browser CPU smoke confirmed prompt/result retention and
+continued drawing/execution after switching. Numerical paths are unchanged.
