@@ -34,7 +34,7 @@ class ReconstructionFidelityCheck:
 @dataclass(frozen=True)
 class ReconstructionResult:
     original: Tensor
-    vae_reconstruction: Tensor
+    vae_reconstruction: Tensor | None
     ddim_reconstruction: Tensor
     inversion: InversionResult
     sampling: SamplingResult
@@ -54,7 +54,8 @@ class ReconstructionPipeline:
                     *, inversion_guidance_scale: float = 1.0,
                     negative_prompt: str | Sequence[str] = "",
                     return_trajectory: bool = False, inversion_refinement_steps: int = 12,
-                    inversion_refinement_tolerance: float = 1e-6) -> ReconstructionResult:
+                    inversion_refinement_tolerance: float = 1e-6,
+                    include_vae_reconstruction: bool = True) -> ReconstructionResult:
         """No editing: source prompt is used for BOTH inversion and sampling.
 
         Guidance 1 uses conditional B embeddings; other scales use a 2B CFG batch.
@@ -65,6 +66,8 @@ class ReconstructionPipeline:
         Refined reconstruction also runs the plain path and chooses the lower
         terminal roundtrip latent MSE; local residual improvement is insufficient.
         """
+        if type(include_vae_reconstruction) is not bool:
+            raise ValueError("include_vae_reconstruction must be boolean")
         validate_guidance_scale(guidance_scale)
         validate_guidance_scale(inversion_guidance_scale)
         validate_refinement(inversion_refinement_steps, inversion_refinement_tolerance)
@@ -76,7 +79,7 @@ class ReconstructionPipeline:
                                else encode_conditioning(self.text, source_prompt, negative_prompt,
                                                         guidance_scale, original.shape[0]))
         latent = self.vae.encode_image(original)
-        vae_image = self.vae.decode_latents(latent)
+        vae_image = self.vae.decode_latents(latent) if include_vae_reconstruction else None
         inversion = DDIMInverter(schedule, self.predict_noise).invert(
             latent, inversion_embeddings, inversion_guidance_scale,
             refinement_steps=inversion_refinement_steps,
@@ -101,6 +104,6 @@ class ReconstructionPipeline:
                                refined_mse, plain_mse)
                 inversion, sampling = plain_inversion, plain_sampling
         ddim_image = self.vae.decode_latents(sampling.final_latent)
-        if vae_image.shape != original.shape or ddim_image.shape != original.shape:
+        if ddim_image.shape != original.shape or (vae_image is not None and vae_image.shape != original.shape):
             raise RuntimeError("reconstruction output dimensions do not match the input")
         return ReconstructionResult(original, vae_image, ddim_image, inversion, sampling, fidelity)

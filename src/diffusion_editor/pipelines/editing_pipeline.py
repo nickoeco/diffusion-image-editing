@@ -25,21 +25,21 @@ from diffusion_editor.editing.blending import SourceLatentBlender, composite_pix
 @dataclass(frozen=True)
 class GlobalEditingResult:
     original: Tensor
-    vae_reconstruction: Tensor
-    source_reconstruction: Tensor
-    edited_image: Tensor
+    vae_reconstruction: Tensor | None
+    source_reconstruction: Tensor | None
+    edited_image: Tensor | None
     selection: StrengthSelection
     inversion: InversionResult | None
-    source_sampling: SamplingResult
-    target_sampling: SamplingResult
+    source_sampling: SamplingResult | None
+    target_sampling: SamplingResult | None
 
 
 @dataclass(frozen=True)
 class LocalEditingResult(GlobalEditingResult):
     pixel_mask: Tensor
     latent_mask: Tensor
-    uncomposited_image: Tensor
-    uncomposited_source: Tensor
+    uncomposited_image: Tensor | None
+    uncomposited_source: Tensor | None
     latent_blending: bool
     preserve_background: bool
 
@@ -47,15 +47,16 @@ class LocalEditingResult(GlobalEditingResult):
 @dataclass(frozen=True)
 class _PreparedEdit:
     original: Tensor
-    vae_image: Tensor
+    vae_image: Tensor | None
     clean: Tensor
     schedule: DDIMSchedule
     selection: StrengthSelection
     inversion: InversionResult | None
     start: Tensor
-    source_reverse: Tensor
-    target_reverse: Tensor
+    source_reverse: Tensor | None
+    target_reverse: Tensor | None
     guidance_scale: float
+    include_vae_reconstruction: bool
 
 
 class EditingPipeline:
@@ -72,24 +73,34 @@ class EditingPipeline:
                     inversion_guidance_scale: float = 1.0,
                     negative_prompt: str | Sequence[str] = "",
                     return_trajectory: bool = False, inversion_refinement_steps: int = 0,
-                    inversion_refinement_tolerance: float = 1e-6) -> GlobalEditingResult:
+                    inversion_refinement_tolerance: float = 1e-6,
+                    include_vae_reconstruction: bool = True,
+                    include_source_control: bool = True, include_edit: bool = True) -> GlobalEditingResult:
         """Invert with source, select stored level, sample source and target controls.
 
         Both reverse branches use the same selected latent, schedule and guidance.
         Strength 0 returns VAE-only images and skips inversion/U-Net entirely.
         This method has no spatial preservation or pixel compositing guarantee.
         Refinement is opt-in here to preserve the measured Phase 4 editing baseline.
+        Unrequested outputs are None and their decode/sampling work is skipped.
         """
         prepared = self._prepare_edit(image, source_prompt, target_prompt, strength, guidance_scale, num_steps,
                                       inversion_guidance_scale, negative_prompt,
-                                      inversion_refinement_steps, inversion_refinement_tolerance)
+                                      inversion_refinement_steps, inversion_refinement_tolerance,
+                                      include_vae_reconstruction, include_source_control, include_edit)
         return self._sample_edit(prepared, return_trajectory)
 
     def _prepare_edit(self, image: Image.Image | Tensor, source_prompt: str | Sequence[str],
                       target_prompt: str | Sequence[str], strength: float, guidance_scale: float, num_steps: int,
                       inversion_guidance_scale: float, negative_prompt: str | Sequence[str],
-                      inversion_refinement_steps: int, inversion_refinement_tolerance: float) -> _PreparedEdit:
+                      inversion_refinement_steps: int, inversion_refinement_tolerance: float,
+                      include_vae_reconstruction: bool = True,
+                      include_source_control: bool = True, include_edit: bool = True) -> _PreparedEdit:
         """Share one source inversion/conditioning path between global and local edits."""
+        if any(type(flag) is not bool for flag in (include_vae_reconstruction, include_source_control, include_edit)):
+            raise ValueError("Output switches must be boolean")
+        if not (include_source_control or include_edit):
+            raise ValueError("Select an edit or source control; use the VAE wrapper for VAE-only reconstruction")
         original = image_to_tensor(image).detach().clone()
         validate_refinement(inversion_refinement_steps, inversion_refinement_tolerance)
         schedule = DDIMSchedule.from_scheduler(self.backend.scheduler, num_steps)
@@ -97,13 +108,13 @@ class EditingPipeline:
         batch_size = original.shape[0]
         source_inversion = encode_conditioning(self.text, source_prompt, negative_prompt,
                                                inversion_guidance_scale, batch_size)
-        source_reverse = (source_inversion if inversion_guidance_scale == guidance_scale
-                          else encode_conditioning(self.text, source_prompt, negative_prompt,
-                                                   guidance_scale, batch_size))
-        target_reverse = encode_conditioning(self.text, target_prompt, negative_prompt,
-                                              guidance_scale, batch_size)
+        source_reverse = ((source_inversion if inversion_guidance_scale == guidance_scale
+                           else encode_conditioning(self.text, source_prompt, negative_prompt,
+                                                    guidance_scale, batch_size)) if include_source_control else None)
+        target_reverse = (encode_conditioning(self.text, target_prompt, negative_prompt,
+                                              guidance_scale, batch_size) if include_edit else None)
         clean = self.vae.encode_image(original)
-        vae_image = self.vae.decode_latents(clean)
+        vae_image = self.vae.decode_latents(clean) if include_vae_reconstruction or not selection.reverse_steps else None
         inversion = (DDIMInverter(schedule, self.predict_noise).invert(
                          clean, source_inversion, inversion_guidance_scale,
                          refinement_steps=inversion_refinement_steps,
@@ -111,7 +122,7 @@ class EditingPipeline:
                      if selection.reverse_steps else None)
         start = clean if inversion is None else inversion.trajectory[selection.start_timestep].to(self.backend.device)
         return _PreparedEdit(original, vae_image, clean, schedule, selection, inversion, start,
-                             source_reverse, target_reverse, guidance_scale)
+                             source_reverse, target_reverse, guidance_scale, include_vae_reconstruction)
 
     def _sample_edit(self, prepared: _PreparedEdit, return_trajectory: bool,
                      after_step: Callable[[Tensor, int], Tensor] | None = None) -> GlobalEditingResult:
@@ -119,15 +130,17 @@ class EditingPipeline:
         sampler = DDIMSampler(p.schedule, self.predict_noise)
         source_sampling = sampler.sample(p.start, p.source_reverse, p.guidance_scale,
                                          start_timestep=p.selection.start_timestep, return_trajectory=return_trajectory,
-                                         after_step=after_step)
+                                         after_step=after_step) if p.source_reverse is not None else None
         target_sampling = sampler.sample(p.start, p.target_reverse, p.guidance_scale,
                                          start_timestep=p.selection.start_timestep, return_trajectory=return_trajectory,
-                                         after_step=after_step)
-        source_image = self.vae.decode_latents(source_sampling.final_latent) if p.selection.reverse_steps else p.vae_image
-        edited = self.vae.decode_latents(target_sampling.final_latent) if p.selection.reverse_steps else p.vae_image
-        if source_image.shape != p.original.shape or edited.shape != p.original.shape:
+                                         after_step=after_step) if p.target_reverse is not None else None
+        source_image = ((self.vae.decode_latents(source_sampling.final_latent) if p.selection.reverse_steps else p.vae_image)
+                        if source_sampling is not None else None)
+        edited = ((self.vae.decode_latents(target_sampling.final_latent) if p.selection.reverse_steps else p.vae_image)
+                  if target_sampling is not None else None)
+        if any(image.shape != p.original.shape for image in (source_image, edited) if image is not None):
             raise RuntimeError("global editing output dimensions do not match the input")
-        return GlobalEditingResult(p.original, p.vae_image, source_image, edited, p.selection,
+        return GlobalEditingResult(p.original, p.vae_image if p.include_vae_reconstruction else None, source_image, edited, p.selection,
                                    p.inversion, source_sampling, target_sampling)
 
     @torch.inference_mode()
@@ -138,7 +151,9 @@ class EditingPipeline:
                    latent_blending: bool = True, preserve_background: bool = True,
                    inversion_guidance_scale: float = 1.0, negative_prompt: str | Sequence[str] = "",
                    return_trajectory: bool = False, inversion_refinement_steps: int = 0,
-                   inversion_refinement_tolerance: float = 1e-6) -> LocalEditingResult:
+                   inversion_refinement_tolerance: float = 1e-6,
+                   include_vae_reconstruction: bool = True,
+                   include_source_control: bool = True, include_edit: bool = True) -> LocalEditingResult:
         """Blend after each update against source at the UPDATED ID, then optionally composite.
 
         Mask 1 edits and 0 preserves. Pixel compositing uses the effective feathered
@@ -156,14 +171,17 @@ class EditingPipeline:
                              binary=binary_mask, feather_radius=feather_radius)
         p = self._prepare_edit(original, source_prompt, target_prompt, strength, guidance_scale, num_steps,
                                inversion_guidance_scale, negative_prompt,
-                               inversion_refinement_steps, inversion_refinement_tolerance)
+                               inversion_refinement_steps, inversion_refinement_tolerance,
+                               include_vae_reconstruction, include_source_control, include_edit)
         levels = p.schedule.reverse_timesteps
         updated_ids = levels[levels.index(p.selection.start_timestep) + 1:]
         source_states = p.inversion.trajectory if p.inversion else {-1: p.clean}
         blender = SourceLatentBlender(source_states, masks.latent, updated_ids, p.start) if latent_blending else None
         base = self._sample_edit(p, return_trajectory, blender)
-        edited = composite_pixels(base.edited_image, p.original, masks.pixel) if preserve_background else base.edited_image
-        source = composite_pixels(base.source_reconstruction, p.original, masks.pixel) if preserve_background else base.source_reconstruction
+        edited = (composite_pixels(base.edited_image, p.original, masks.pixel)
+                  if preserve_background and base.edited_image is not None else base.edited_image)
+        source = (composite_pixels(base.source_reconstruction, p.original, masks.pixel)
+                  if preserve_background and base.source_reconstruction is not None else base.source_reconstruction)
         return LocalEditingResult(base.original, base.vae_reconstruction, source, edited, base.selection,
                                   base.inversion, base.source_sampling, base.target_sampling,
                                   masks.pixel, masks.latent, base.edited_image, base.source_reconstruction,
