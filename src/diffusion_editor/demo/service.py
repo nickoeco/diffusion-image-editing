@@ -25,9 +25,44 @@ from diffusion_editor.evaluation.metrics import background_metrics, reconstructi
 from diffusion_editor.models.sd_backend import SDBackend
 from diffusion_editor.pipelines.editing_pipeline import EditingPipeline
 from diffusion_editor.pipelines.reconstruction import ReconstructionPipeline
+from diffusion_editor.pipelines.generation import TextToImagePipeline
 from diffusion_editor.utils.environment import inspect_environment
 from diffusion_editor.utils.image_utils import image_to_tensor, tensor_to_images
 from diffusion_editor.utils.visualization import save_image_grid
+
+
+@dataclass(frozen=True)
+class GenerationRequest:
+    prompt: str
+    negative_prompt: str = ""
+    width: int = 512
+    height: int = 512
+    steps: int = 50
+    guidance: float = 7.5
+    seed: int = 42
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.prompt, str) or not self.prompt.strip():
+            raise ValueError("Enter a generation prompt.")
+        if not isinstance(self.negative_prompt, str):
+            raise ValueError("Negative prompt must be text.")
+        if any(type(size) is not int or not 64 <= size <= 1024 or size % 8
+               for size in (self.width, self.height)):
+            raise ValueError("Generation width and height must be multiples of 8 in [64,1024].")
+        if type(self.steps) is not int or not 1 <= self.steps <= 200:
+            raise ValueError("Steps must be an integer between 1 and 200.")
+        if type(self.seed) is not int or not 0 <= self.seed < 2**32:
+            raise ValueError("Seed must be an integer in [0,2**32).")
+        validate_guidance_scale(self.guidance)
+
+
+@dataclass
+class GenerationDemoResult:
+    image: Image.Image
+    status: str
+    report: dict[str, Any]
+    result_file: str
+    archive_file: str
 
 @dataclass(frozen=True)
 class DemoRequest:
@@ -140,6 +175,58 @@ class DemoService:
             backend = self._loader(self.config)
             editor, reconstructor = EditingPipeline(backend), ReconstructionPipeline(backend)
             self._backend, self._editor, self._reconstructor = backend, editor, reconstructor
+
+    def generate(self, request: GenerationRequest,
+                 progress: Callable[[float, str], None] | None = None) -> GenerationDemoResult:
+        """Independent txt2img entrypoint sharing the editing model cache and lock."""
+        notify = progress or (lambda fraction, message: None)
+        with self._lock:
+            notify(0.05, "Loading cached model components")
+            started = time.perf_counter()
+            first_load = self._backend is None
+            self._models()
+            load_seconds = time.perf_counter() - started
+            pipeline = TextToImagePipeline(self._backend)
+            if self._backend.device == "cuda":
+                torch.cuda.synchronize()
+                torch.cuda.reset_peak_memory_stats()
+            notify(0.15, "Generating with custom DDIM sampling and CFG")
+            started = time.perf_counter()
+            result = pipeline.generate(request.prompt, negative_prompt=request.negative_prompt,
+                width=request.width, height=request.height, num_steps=request.steps,
+                guidance_scale=request.guidance, seed=request.seed)
+            if self._backend.device == "cuda":
+                torch.cuda.synchronize()
+            elapsed = time.perf_counter() - started
+            image = tensor_to_images(result.image)[0]
+            directory = self.output_dir / uuid4().hex
+            directory.mkdir(parents=True)
+            notify(0.9, "Saving generated image and report")
+            image.save(directory / "generated.png")
+            report = _json_safe({"mode": "txt2img", "method": "custom_ddim_eta0_cfg",
+                "config": self.config.to_dict(), "request": asdict(request),
+                "model_first_load": first_load, "model_load_seconds": load_seconds,
+                "compute_seconds": elapsed, "sampling_timesteps": result.sampling.timesteps,
+                "initial_noise": {"generator_device": "cpu", "dtype": "torch.float32",
+                    "shape": list(result.initial_latent.shape),
+                    "init_noise_sigma": float(self._backend.scheduler.init_noise_sigma),
+                    "sha256": hashlib.sha256(result.initial_latent.numpy().tobytes()).hexdigest(),
+                    "convention": "Gaussian prior at highest selected actual scheduler level; no source inversion"},
+                "runtime": {"device": str(self._backend.device),
+                    "unet_dtype": str(next(self._backend.unet.parameters()).dtype),
+                    "vae_dtype": str(next(self._backend.vae.parameters()).dtype),
+                    "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated() if self._backend.device == "cuda" else None},
+                "output_png_sha256": hashlib.sha256((directory / "generated.png").read_bytes()).hexdigest(),
+                "metrics": None, "metric_note": "No source reference: PSNR, SSIM and background MAE are not applicable.",
+                "environment": inspect_environment()})
+            (directory / "report.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+            archive = directory / "run.zip"
+            with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as package:
+                package.write(directory / "generated.png", "generated.png")
+                package.write(directory / "report.json", "report.json")
+            status = f"Text to image complete. Compute: {elapsed:.2f}s; model loading: {load_seconds:.2f}s. Output: {request.width} x {request.height}."
+            notify(1.0, "Complete")
+            return GenerationDemoResult(image, status, report, str(directory / "generated.png"), str(archive))
 
     def run(self, image: Image.Image | None, uploaded_mask: Image.Image | None,
             drawing: dict[str, Any] | None, request: DemoRequest,
