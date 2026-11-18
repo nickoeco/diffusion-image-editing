@@ -17,7 +17,8 @@ from PIL import Image
 import torch
 
 from diffusion_editor.config import ProjectConfig
-from diffusion_editor.demo.inputs import normalize_image, resolve_mask
+from diffusion_editor.demo.image_fit import PreparedUpload, image_digest, prepare_upload, resolve_fitted_mask
+from diffusion_editor.demo.ui_state import CONTROL, DDIM, EDIT, MODES, VAE
 from diffusion_editor.diffusion.guidance import validate_guidance_scale
 from diffusion_editor.editing.mask import prepare_mask
 from diffusion_editor.evaluation.metrics import background_metrics, reconstruction_metrics
@@ -25,11 +26,8 @@ from diffusion_editor.models.sd_backend import SDBackend
 from diffusion_editor.pipelines.editing_pipeline import EditingPipeline
 from diffusion_editor.pipelines.reconstruction import ReconstructionPipeline
 from diffusion_editor.utils.environment import inspect_environment
-from diffusion_editor.utils.image_utils import tensor_to_images
+from diffusion_editor.utils.image_utils import image_to_tensor, tensor_to_images
 from diffusion_editor.utils.visualization import save_image_grid
-
-MODES = ("Local edit", "Global edit", "Reconstruct source")
-
 
 @dataclass(frozen=True)
 class DemoRequest:
@@ -47,16 +45,34 @@ class DemoRequest:
     preserve_background: bool = True
     inversion_guidance: float = 1.0
     negative_prompt: str = ""
-    include_reconstruction: bool = True
+    include_reconstruction: bool | None = None
+    include_vae_reconstruction: bool = False
+    include_edit: bool | None = None
+    include_source_control: bool = False
     refine_reconstruction: bool = True
     show_intermediates: bool = False
+    auto_fit: bool = True
 
     def __post_init__(self) -> None:
         if self.mode not in MODES:
             raise ValueError("Choose Local edit, Global edit or Reconstruct source.")
-        if not isinstance(self.source_prompt, str) or not self.source_prompt.strip():
+        if self.include_edit is None:
+            object.__setattr__(self, "include_edit", self.mode != "Reconstruct source")
+        if self.include_reconstruction is None:
+            object.__setattr__(self, "include_reconstruction", self.mode == "Reconstruct source")
+        for field in ("soft_mask", "latent_blending", "preserve_background", "include_reconstruction",
+                      "include_vae_reconstruction", "include_edit", "include_source_control",
+                      "refine_reconstruction", "show_intermediates", "auto_fit"):
+            if type(getattr(self, field)) is not bool:
+                raise ValueError(f"{field} must be boolean.")
+        if not self.requested_outputs:
+            raise ValueError("Select at least one output to calculate.")
+        if self.mode == "Reconstruct source" and (self.include_edit or self.include_source_control):
+            raise ValueError("Reconstruct source supports VAE and DDIM reconstruction outputs only.")
+        diffusion = self.include_edit or self.include_source_control or self.include_reconstruction
+        if not isinstance(self.source_prompt, str) or (diffusion and not self.source_prompt.strip()):
             raise ValueError("Enter a source prompt describing the original image.")
-        if self.mode != "Reconstruct source" and (not isinstance(self.target_prompt, str) or not self.target_prompt.strip()):
+        if self.include_edit and (not isinstance(self.target_prompt, str) or not self.target_prompt.strip()):
             raise ValueError("Enter a target prompt describing the desired change.")
         if not isinstance(self.negative_prompt, str):
             raise ValueError("Negative prompt must be text.")
@@ -72,16 +88,17 @@ class DemoRequest:
             raise ValueError("Feather radius must be finite and nonnegative.")
         if self.mask_source not in ("Upload", "Draw"):
             raise ValueError("Mask source must be Upload or Draw.")
-        for field in ("soft_mask", "latent_blending", "preserve_background", "include_reconstruction",
-                      "refine_reconstruction", "show_intermediates"):
-            if type(getattr(self, field)) is not bool:
-                raise ValueError(f"{field} must be boolean.")
+
+    @property
+    def requested_outputs(self) -> list[str]:
+        return [label for label, enabled in ((EDIT, self.include_edit), (VAE, self.include_vae_reconstruction),
+                (DDIM, self.include_reconstruction), (CONTROL, self.include_source_control)) if enabled]
 
 
 @dataclass
 class DemoResult:
     original: Image.Image
-    vae: Image.Image
+    vae: Image.Image | None
     reconstruction: Image.Image | None
     control: Image.Image | None
     edited: Image.Image | None
@@ -126,12 +143,18 @@ class DemoService:
 
     def run(self, image: Image.Image | None, uploaded_mask: Image.Image | None,
             drawing: dict[str, Any] | None, request: DemoRequest,
-            progress: Callable[[float, str], None] | None = None) -> DemoResult:
+            progress: Callable[[float, str], None] | None = None,
+            *, input_state: PreparedUpload | None = None) -> DemoResult:
         notify = progress or (lambda fraction, text: None)
-        original = normalize_image(image)
+        prepared = prepare_upload(image, input_state, enabled=request.auto_fit)
+        original = prepared.image
         if min(original.size) < 8 or max(original.size) > 1024:
             raise ValueError("Demo images must be between 8 and 1024 pixels on each side; around 512 is recommended.")
-        mask = resolve_mask(original, request.mask_source, uploaded_mask, drawing) if request.mode == "Local edit" else None
+        run_edit = request.include_edit or request.include_source_control
+        mask = raw_mask = mask_fit = None
+        if request.mode == "Local edit" and run_edit:
+            mask, raw_mask, mask_fit = resolve_fitted_mask(prepared, request.mask_source, uploaded_mask, drawing,
+                                                        binary=not request.soft_mask)
         if request.feather_radius > max(original.size):
             raise ValueError("Feather radius is larger than the image.")
         with self._lock:
@@ -149,11 +172,13 @@ class DemoService:
                 torch.cuda.reset_peak_memory_stats()
             compute_start = time.perf_counter()
             edit = reconstruction = None
-            if request.mode != "Reconstruct source":
+            if run_edit:
                 notify(0.15, "Running custom source inversion and editing")
                 options = dict(strength=request.strength, guidance_scale=request.guidance, num_steps=request.steps,
                                inversion_guidance_scale=request.inversion_guidance, negative_prompt=request.negative_prompt,
-                               return_trajectory=request.show_intermediates)
+                               return_trajectory=request.show_intermediates,
+                               include_vae_reconstruction=request.include_vae_reconstruction,
+                               include_source_control=request.include_source_control, include_edit=request.include_edit)
                 if mask is None:
                     edit = self._editor.edit_global(original, request.source_prompt, request.target_prompt, **options)
                 else:
@@ -161,20 +186,32 @@ class DemoService:
                                                    binary_mask=not request.soft_mask, feather_radius=request.feather_radius,
                                                    latent_blending=request.latent_blending,
                                                    preserve_background=request.preserve_background, **options)
-            if request.mode == "Reconstruct source" or request.include_reconstruction:
+            if request.include_reconstruction:
                 notify(0.55, "Calculating independent DDIM source reconstruction")
                 reconstruction = self._reconstructor.reconstruct(
                     original, request.source_prompt, request.steps, 1,
                     inversion_guidance_scale=1, negative_prompt=request.negative_prompt,
                     inversion_refinement_steps=12 if request.refine_reconstruction else 0,
-                    return_trajectory=request.show_intermediates)
+                    return_trajectory=request.show_intermediates,
+                    include_vae_reconstruction=request.include_vae_reconstruction and edit is None)
+            tensors = {"original": image_to_tensor(original)}
+            base = edit or reconstruction
+            if base is not None:
+                tensors["original"] = base.original
+            if request.include_vae_reconstruction:
+                if base is not None:
+                    tensors["vae"] = base.vae_reconstruction
+                else:
+                    notify(0.2, "Calculating VAE reconstruction")
+                    tensors["vae"] = self._editor.vae.decode_latents(self._editor.vae.encode_image(original))
             if self._backend.device == "cuda":
                 torch.cuda.synchronize()
             compute_seconds = time.perf_counter() - compute_start
-            base = edit or reconstruction
-            tensors = {"original": base.original, "vae": base.vae_reconstruction}
             if edit:
-                tensors.update(control=edit.source_reconstruction, edited=edit.edited_image)
+                if request.include_source_control:
+                    tensors["control"] = edit.source_reconstruction
+                if request.include_edit:
+                    tensors["edited"] = edit.edited_image
             if reconstruction:
                 tensors["reconstruction"] = reconstruction.ddim_reconstruction
             if mask is not None:
@@ -183,17 +220,19 @@ class DemoService:
             metrics = {}
             for name in ("vae", "reconstruction", "control", "edited"):
                 if name in tensors:
-                    metrics[name] = reconstruction_metrics(base.original, tensors[name])
+                    metrics[name] = reconstruction_metrics(tensors["original"], tensors[name])
             background = None
             if mask is not None:
                 requested_mask = prepare_mask(mask, image_size=(original.height, original.width),
                                               latent_size=edit.latent_mask.shape[-2:], binary=not request.soft_mask)
-                background = {"before_pixel_composite": background_metrics(edit.original, edit.uncomposited_image, edit.pixel_mask),
-                              "final": background_metrics(edit.original, edit.edited_image, edit.pixel_mask),
-                              "requested_mask_final": background_metrics(edit.original, edit.edited_image, requested_mask.pixel)}
+                raw = edit.uncomposited_image if request.include_edit else edit.uncomposited_source
+                final = edit.edited_image if request.include_edit else edit.source_reconstruction
+                background = {"before_pixel_composite": background_metrics(edit.original, raw, edit.pixel_mask),
+                              "final": background_metrics(edit.original, final, edit.pixel_mask),
+                              "requested_mask_final": background_metrics(edit.original, final, requested_mask.pixel)}
             previews = []
-            sampling = edit.target_sampling if edit else reconstruction.sampling
-            if request.show_intermediates and sampling.trajectory:
+            sampling = (edit.target_sampling or edit.source_sampling) if edit else reconstruction.sampling if reconstruction else None
+            if request.show_intermediates and sampling is not None and sampling.trajectory:
                 levels = sampling.timesteps
                 for index in dict.fromkeys((0, len(levels) // 2, len(levels) - 1)):
                     t = levels[index]
@@ -204,9 +243,16 @@ class DemoService:
             directory.mkdir(parents=True)
             for name, value in images.items():
                 value.save(directory / f"{name}.png")
+            if prepared.fit.changed:
+                prepared.original.save(directory / "uploaded_original.png")
             if mask is not None:
                 mask.save(directory / "input_mask.png")
-                tensor_to_images(edit.uncomposited_image)[0].save(directory / "edited_uncomposited.png")
+                if image_digest(raw_mask.convert("L")) != image_digest(mask):
+                    raw_mask.save(directory / "mask_before_fit.png")
+                if request.include_edit:
+                    tensor_to_images(edit.uncomposited_image)[0].save(directory / "edited_uncomposited.png")
+                if request.include_source_control:
+                    tensor_to_images(edit.uncomposited_source)[0].save(directory / "control_uncomposited.png")
                 torch.save({"pixel": edit.pixel_mask.cpu(), "latent": edit.latent_mask.cpu()}, directory / "mask_tensors.pt")
             for index, (value, label) in enumerate(previews):
                 value.save(directory / f"preview_{index}.png")
@@ -223,6 +269,10 @@ class DemoService:
                     for metric, value in values.items():
                         writer.writerow((f"background_{stage}", metric, value))
             report = _json_safe({"config": self.config.to_dict(), "request": asdict(request),
+                      "computed_outputs": request.requested_outputs,
+                      "preprocessing": prepared.fit.to_dict() | {"original_pixels_sha256": prepared.original_digest,
+                                          "canvas_pixels_sha256": prepared.canvas_digest, "mask_transform": mask_fit},
+                      "metric_domain": "fitted_model_canvas_including_padding",
                       "model_first_load": first_load, "model_load_seconds": model_load_seconds,
                       "compute_seconds": compute_seconds,
                       "runtime": {"device": str(self._backend.device), "unet_dtype": str(next(self._backend.unet.parameters()).dtype),
@@ -232,14 +282,15 @@ class DemoService:
                       "source_png_sha256": hashlib.sha256((directory / "original.png").read_bytes()).hexdigest(),
                       "mask_png_sha256": hashlib.sha256((directory / "input_mask.png").read_bytes()).hexdigest() if mask else None,
                       "selection": asdict(edit.selection) if edit else None,
-                      "source_timesteps": edit.source_sampling.timesteps if edit else None,
-                      "target_timesteps": edit.target_sampling.timesteps if edit else None,
+                      "source_timesteps": edit.source_sampling.timesteps if edit and edit.source_sampling else None,
+                      "target_timesteps": edit.target_sampling.timesteps if edit and edit.target_sampling else None,
                       "reconstruction_timesteps": reconstruction.sampling.timesteps if reconstruction else None,
                       "reconstruction_method": fidelity.selected_method if fidelity else "plain_ddim" if reconstruction else None,
                       "fidelity_check": {"refined_latent_mse": fidelity.refined_latent_mse,
                                          "plain_latent_mse": fidelity.plain_latent_mse} if fidelity else None,
                       "reconstruction_refinement": {str(t): asdict(d) for t, d in fidelity.candidate_refinement.items()} if fidelity else None,
                       "metrics": metrics, "background_metrics": background,
+                      "background_output": ("edited" if request.include_edit else "control") if mask is not None else None,
                       "metric_settings": {"data_range": 1, "color": "RGB", "ssim_window": 7,
                                           "ssim_gaussian_weights": False, "ssim_sample_covariance": True},
                       "metric_note": "PSNR/SSIM measure preservation, not prompt alignment. Null PSNR means exact match or undefined empty region; inspect region weight.",
@@ -250,10 +301,11 @@ class DemoService:
                 for file in directory.iterdir():
                     if file != archive and file.is_file():
                         package.write(file, file.name)
-            primary = directory / ("edited.png" if edit else "reconstruction.png")
-            status = f"{request.mode} complete. Compute: {compute_seconds:.2f}s; model loading: {model_load_seconds:.2f}s."
+            primary = directory / next(f"{name}.png" for name in ("edited", "reconstruction", "vae", "control") if name in images)
+            status = f"{request.mode} complete. Outputs: {', '.join(request.requested_outputs)}. Compute: {compute_seconds:.2f}s; model loading: {model_load_seconds:.2f}s."
             if edit:
                 status += f" Start timestep {edit.selection.start_timestep}; reverse steps {edit.selection.reverse_steps}."
+            status += f" Canvas/output: {original.width} x {original.height}."
             notify(1.0, "Complete")
-            return DemoResult(images["original"], images["vae"], images.get("reconstruction"), images.get("control"),
+            return DemoResult(images["original"], images.get("vae"), images.get("reconstruction"), images.get("control"),
                               images.get("edited"), images.get("mask"), previews, status, report, str(primary), str(archive))

@@ -12,7 +12,9 @@ import pytest
 
 from diffusion_editor.config import ProjectConfig
 from diffusion_editor.demo.inputs import editor_canvas, normalize_image, resolve_mask
+from diffusion_editor.demo.image_fit import prepare_upload
 from diffusion_editor.demo.service import DemoRequest, DemoService
+from diffusion_editor.demo.ui_state import CONTROL, DDIM, EDIT, VAE, default_outputs, layout_css, output_choices, validate_outputs
 from test_reconstruction import FakeVAE, FakeText, FakeTokenizer, FakeUNet, FakeScheduler
 
 
@@ -81,7 +83,7 @@ def test_lazy_models_validation_before_loading_and_offline_policy(service, image
     with pytest.raises(ValueError, match="Upload a mask"):
         service.run(image, None, None, DemoRequest(steps=3))
     with pytest.raises(ValueError, match="8 and 1024"):
-        service.run(Image.new("RGB", (1025, 16)), None, None, DemoRequest(mode="Global edit", steps=3))
+        service.run(Image.new("RGB", (1025, 16)), None, None, DemoRequest(mode="Global edit", steps=3, auto_fit=False))
     assert not service.load_calls
     with pytest.raises(ValueError, match="local_files_only"):
         DemoService(ProjectConfig(local_files_only=False))
@@ -91,7 +93,8 @@ def test_local_run_artifacts_reuse_and_reconstruction(service, image):
     mask = Image.new("L", image.size)
     mask.paste(255, (8, 4, 18, 12))
     progress = []
-    request = DemoRequest(steps=3, strength=0.5, show_intermediates=True)
+    request = DemoRequest(steps=3, strength=0.5, show_intermediates=True, include_reconstruction=True,
+                          include_vae_reconstruction=True, include_source_control=True)
     result = service.run(image, mask, None, request, lambda fraction, text: progress.append(fraction))
     np.testing.assert_array_equal(np.asarray(result.edited)[np.asarray(mask) == 0],
                                   np.asarray(image)[np.asarray(mask) == 0])
@@ -118,7 +121,38 @@ def test_reconstruction_mode_and_invalid_dimensions(service, image):
     assert result.report["reconstruction_method"] == "plain_ddim"
     assert Path(result.result_file).name == "reconstruction.png"
     with pytest.raises(ValueError, match="multiples of 2"):
-        service.run(Image.new("RGB", (17, 24)), None, None, DemoRequest(mode="Global edit", steps=3))
+        service.run(Image.new("RGB", (17, 24)), None, None, DemoRequest(mode="Global edit", steps=3, auto_fit=False))
+
+
+def test_auto_fit_vae_only_records_original_and_canvas(service):
+    image = Image.new("RGB", (1031, 31), "red")
+    result = service.run(image, None, None, DemoRequest(include_edit=False, include_vae_reconstruction=True))
+    assert result.original.size == result.vae.size == (1024, 32)
+    info = result.report["preprocessing"]
+    assert info["source_size"] == [1031, 31] and info["content_size"] == [1024, 31]
+    assert info["padding_bottom"] == 1 and info["padding_right"] == 0
+    assert result.report["metric_domain"] == "fitted_model_canvas_including_padding"
+    with zipfile.ZipFile(result.archive_file) as archive:
+        assert "uploaded_original.png" in archive.namelist()
+        with archive.open("uploaded_original.png") as stream:
+            assert Image.open(stream).size == image.size
+
+
+def test_auto_fit_local_original_mask_and_preview_provenance(service):
+    image = Image.new("RGB", (17, 13), "red")
+    prepared = prepare_upload(image)
+    mask = Image.new("L", image.size)
+    mask.paste(255, (4, 4, 12, 10))
+    request = DemoRequest(steps=3, strength=0.5)
+    direct = service.run(image, mask, None, request)
+    preview = service.run(prepared.image, mask, None, request, input_state=prepared)
+    np.testing.assert_array_equal(np.asarray(direct.edited), np.asarray(preview.edited))
+    fitted_mask = prepared.fit.mask(mask, binary=True)[0]
+    preserved = np.asarray(fitted_mask) == 0
+    np.testing.assert_array_equal(np.asarray(direct.edited)[preserved], np.asarray(prepared.image)[preserved])
+    assert preview.report["preprocessing"]["source_size"] == [17, 13]
+    with zipfile.ZipFile(preview.archive_file) as archive:
+        assert {"mask_before_fit.png", "input_mask.png", "uploaded_original.png"} <= set(archive.namelist())
 
 
 @pytest.mark.demo
@@ -140,10 +174,16 @@ def test_http_upload_download_draw_and_errors(service, image, tmp_path):
                    allowed_paths=[str(tmp_path)], quiet=True)
         client = Client(f"http://127.0.0.1:{port}", verbose=False)
         args = [handle_file(image_path), handle_file(mask_path), None, "Local edit", "coffee", "pencil",
-                3, 0.5, 3, 42, "Upload", False, 0, True, True, 1, "", False, False, False]
+                3, 0.5, 3, 42, "Upload", False, 0, True, True, 1, "", [EDIT], False, False, True]
         result = client.predict(*args, api_name="/run")
         assert "complete" in result[7] and result[8]["request"]["steps"] == 3
         assert Path(result[9]).is_file() and zipfile.is_zipfile(result[10])
+        assert result[8]["computed_outputs"] == [EDIT]
+        assert result[8]["source_timesteps"] is None and result[8]["reconstruction_timesteps"] is None
+        operation = client.predict("Global edit", api_name="/change_operation")
+        assert "#local-mask-panel" in operation[1] and "display:none" in operation[1]
+        uploaded = client.predict(handle_file(image_path), "Global edit", [EDIT], True, api_name="/upload_image")
+        assert uploaded[0] and uploaded[2] is None
         layer_path = tmp_path / "paint.png"
         layer = Image.new("RGBA", image.size)
         layer.paste((255, 255, 255, 255), (4, 4, 12, 12))
@@ -155,6 +195,25 @@ def test_http_upload_download_draw_and_errors(service, image, tmp_path):
         args[2]["layers"] = []
         with pytest.raises(Exception, match="No painted region"):
             client.predict(*args, api_name="/run")
+        args[17] = [VAE]
+        args[4] = args[5] = ""
+        args[1] = args[2] = None
+        vae_only = client.predict(*args, api_name="/run")
+        assert vae_only[8]["computed_outputs"] == [VAE]
+        assert vae_only[8]["selection"] is None
+        odd_path = tmp_path / "odd.png"
+        Image.new("RGB", (17, 13), "red").save(odd_path)
+        fitted = client.predict(handle_file(odd_path), "Local edit", [VAE], True, api_name="/upload_image")
+        assert Image.open(fitted[0]).size == (24, 16)
+        assert "upload 17 x 13" in fitted[3] and "canvas/output 24 x 16" in fitted[3]
+        args[0] = handle_file(fitted[0])
+        odd_result = client.predict(*args, api_name="/run")
+        assert odd_result[8]["preprocessing"]["source_size"] == [17, 13]
+        assert Image.open(odd_result[9]).size == (24, 16)
+        strict = client.predict(handle_file(fitted[0]), "Local edit", [VAE], False, api_name="/fit_image")
+        assert Image.open(strict[0]).size == (17, 13) and strict[1]["layers"] == []
+        restored = client.predict(handle_file(strict[0]), "Local edit", [VAE], True, api_name="/fit_image")
+        assert "upload 17 x 13" in restored[3] and Image.open(restored[0]).size == (24, 16)
     finally:
         app.close()
 
@@ -165,8 +224,121 @@ def test_real_demo_service(tmp_path):
     image = Image.open("assets/examples/coffee.png").convert("RGB").resize((64, 64))
     mask = Image.new("L", image.size)
     mask.paste(255, (16, 16, 48, 48))
-    result = DemoService(ProjectConfig(), tmp_path).run(
-        image, mask, None, DemoRequest(steps=4, strength=0.5, guidance=3, include_reconstruction=False))
+    from diffusion_editor.evaluation.artifacts import count_unet
+    service = DemoService(ProjectConfig(), tmp_path)
+    service._models()
+    with count_unet(service._backend.unet) as budget:
+        result = service.run(image, mask, None, DemoRequest(steps=4, strength=0.5, guidance=3))
+    assert budget["unet_calls"] == 6
+    assert result.vae is None and result.control is None and result.reconstruction is None
     assert result.report["background_metrics"]["final"]["background_mae"] == 0
     assert result.report["selection"]["reverse_steps"] == 2
     assert zipfile.is_zipfile(result.archive_file)
+    odd = image.crop((0, 0, 57, 49))
+    with count_unet(service._backend.unet) as budget:
+        vae = service.run(odd, None, None, DemoRequest(include_edit=False, include_vae_reconstruction=True))
+    assert budget["unet_calls"] == 0 and vae.vae is not None
+    assert vae.vae.size == (64, 56)
+    assert vae.report["preprocessing"]["source_size"] == [57, 49]
+
+
+def test_output_rules_and_mode_specific_controls():
+    assert default_outputs("Local edit") == [EDIT]
+    assert default_outputs("Reconstruct source") == [DDIM]
+    assert output_choices("Reconstruct source") == [VAE, DDIM]
+    assert "#local-mask-panel" not in layout_css("Local edit", [EDIT])
+    assert "#local-mask-panel" in layout_css("Global edit", [EDIT])
+    assert "#local-mask-panel" in layout_css("Reconstruct source", [DDIM])
+    assert "#local-mask-panel" in layout_css("Local edit", [VAE])
+    with pytest.raises(ValueError, match="at least one"):
+        validate_outputs("Global edit", [])
+    with pytest.raises(ValueError, match="valid"):
+        validate_outputs("Reconstruct source", [EDIT])
+    with pytest.raises(ValueError, match="at least one"):
+        DemoRequest(include_edit=False)
+
+
+def test_edit_only_skips_control_ddim_and_vae_decode(service, image):
+    from unittest.mock import Mock
+    from diffusion_editor.evaluation.artifacts import count_unet
+    service._models()
+    vae = service._backend.vae
+    vae.decode = Mock(wraps=vae.decode)
+    service._reconstructor.reconstruct = Mock(side_effect=AssertionError("Unrequested DDIM work"))
+    with count_unet(service._backend.unet) as budget:
+        result = service.run(image, None, None, DemoRequest(mode="Global edit", steps=3, strength=0.5))
+    assert budget["unet_calls"] == 5  # Three inversion calls + two target calls.
+    assert vae.decode.call_count == 1
+    assert result.vae is None and result.control is None and result.reconstruction is None
+    assert result.report["source_timesteps"] is None
+    with zipfile.ZipFile(result.archive_file) as archive:
+        assert not {"vae.png", "control.png", "reconstruction.png"} & set(archive.namelist())
+    reference = service._editor.edit_global(image, "coffee", "pencil", 0.5, 7.5, 3)
+    from diffusion_editor.utils.image_utils import tensor_to_images
+    np.testing.assert_array_equal(np.asarray(result.edited), np.asarray(tensor_to_images(reference.edited_image)[0]))
+
+
+def test_vae_only_skips_prompts_mask_and_all_diffusion(service, image):
+    from unittest.mock import Mock
+    from diffusion_editor.evaluation.artifacts import count_unet
+    service._models()
+    vae = service._backend.vae
+    vae.decode = Mock(wraps=vae.decode)
+    service._editor.edit_local = service._editor.edit_global = Mock(side_effect=AssertionError("Unrequested editing"))
+    service._reconstructor.reconstruct = Mock(side_effect=AssertionError("Unrequested DDIM work"))
+    with count_unet(service._backend.unet) as budget:
+        result = service.run(image, None, None, DemoRequest(source_prompt="", target_prompt="", steps=3,
+                            include_edit=False, include_vae_reconstruction=True))
+    assert budget["unet_calls"] == 0
+    assert vae.decode.call_count == 1
+    assert result.vae and result.edited is None and result.reconstruction is None and result.mask is None
+    assert result.report["computed_outputs"] == [VAE]
+    assert Path(result.result_file).name == "vae.png"
+
+
+def test_ddim_only_skips_editing_and_vae_baseline(service, image):
+    from unittest.mock import Mock
+    from diffusion_editor.evaluation.artifacts import count_unet
+    service._models()
+    service._editor.edit_global = Mock(side_effect=AssertionError("Unrequested editing"))
+    vae = service._backend.vae
+    vae.decode = Mock(wraps=vae.decode)
+    with count_unet(service._backend.unet) as budget:
+        result = service.run(image, None, None, DemoRequest(mode="Global edit", target_prompt="", steps=3,
+                            include_edit=False, include_reconstruction=True, refine_reconstruction=False))
+    assert budget["unet_calls"] == 6
+    assert vae.decode.call_count == 1
+    assert result.reconstruction and result.vae is None and result.edited is None
+    assert result.report["computed_outputs"] == [DDIM]
+
+
+def test_source_control_only_uses_local_mask_and_no_target(service, image):
+    from unittest.mock import Mock
+    from diffusion_editor.evaluation.artifacts import count_unet
+    mask = Image.new("L", image.size)
+    service._models()
+    vae = service._backend.vae
+    vae.decode = Mock(wraps=vae.decode)
+    with count_unet(service._backend.unet) as budget:
+        result = service.run(image, mask, None, DemoRequest(target_prompt="", steps=3, strength=0.5,
+                            include_edit=False, include_source_control=True))
+    assert budget["unet_calls"] == 5
+    assert vae.decode.call_count == 1
+    assert result.control and result.edited is None
+    assert result.report["target_timesteps"] is None
+    np.testing.assert_array_equal(np.asarray(result.control), np.asarray(image))
+
+
+def test_combined_outputs_decode_one_shared_vae_baseline(service, image):
+    from unittest.mock import Mock
+    from diffusion_editor.evaluation.artifacts import count_unet
+    service._models()
+    vae = service._backend.vae
+    vae.decode = Mock(wraps=vae.decode)
+    with count_unet(service._backend.unet) as budget:
+        result = service.run(image, None, None, DemoRequest(mode="Global edit", steps=3, strength=0.5,
+            include_vae_reconstruction=True, include_reconstruction=True, include_source_control=True,
+            refine_reconstruction=False))
+    assert budget["unet_calls"] == 13  # Edit with control: 7; independent plain reconstruction: 6.
+    assert vae.decode.call_count == 4  # One baseline, edit, source control and DDIM output.
+    assert set(result.report["computed_outputs"]) == {EDIT, VAE, DDIM, CONTROL}
