@@ -123,20 +123,33 @@ checks remain part of the full suite.
 `demo/app.py` builds the optional Gradio interface and owns presentation and useful
 error messages. `demo/inputs.py` validates oriented input images and masks; painted
 masks are the alpha union of RGBA paint layers, never the photographic composite.
-The canvas background must exactly match the original. Canvas mounting stays
-visible, including across operation changes, to avoid Gradio initialization races.
+The canvas background must exactly match the original. `demo/ui_state.py` defines
+mode/output selection rules and scoped CSS. Inactive mask controls are hidden
+without unmounting the initialized canvas, avoiding Gradio initialization races
+when returning to local editing. A dedicated custom-image upload button resets
+the mask/canvas and previous results.
 
 `demo/service.py::DemoService` lazily loads one backend from the existing offline
 cache and reuses both custom pipeline wrappers. A lock serializes all model work;
 the Gradio queue also limits inference concurrency to one. UI settings become a
 validated immutable `DemoRequest`; there is no diffusion arithmetic in the UI.
 Editing and independent source reconstruction retain their separate numerical
-settings and output labels. Full source reconstruction is optional for edit runs.
+settings and output labels. The UI defaults to Edit-only, with VAE/DDIM/control
+outputs explicitly opt-in. Service routing skips unselected branches. The custom
+pipeline APIs retain their existing all-output defaults and expose optional flags
+to skip baseline decoding, source-control sampling or target sampling. VAE-only
+requests use the pretrained VAE wrapper with no diffusion or text execution.
 
 Each request saves a unique output directory and ZIP with PNGs, JSON/CSV metrics,
 input hashes, exact state IDs, model revision, software/device/dtype and timings.
 The server binds to 127.0.0.1 without a share link, permits downloads from the run
-output root, limits uploaded files to 20 MB and image sides to 1024 pixels.
+output root and limits uploaded files to 20 MB. `demo/image_fit.py` owns the
+demo-only, explicit original-to-content-to-canvas transform: proportional reduction
+to a 1024-pixel long edge, followed by right/bottom replicated-edge padding to
+multiples of 8. Masks share its geometry with zero padding. A session state retains
+the original and pixel hashes so toggling fitting restores the source rather than
+resizing the padded preview repeatedly. Core pipelines and research inputs remain
+strict. Outputs and metrics use the fitted canvas; see [image fitting](demo-image-fit.md).
 App construction loads no weights. HTTP checks are explicit `--run-demo` opt-ins;
 default unit tests exercise inputs and service with CPU fakes and no sockets.
 

@@ -345,12 +345,39 @@ uploaded all-zero mask remains a valid preservation control.
 
 `DemoRequest` validates mode, prompts, finite parameters, integer steps/seed and
 boolean switches. `DemoService.run` rejects missing/misaligned masks before loading
-models, bounds image sides to 8–1024, then checks the actual VAE spatial factor.
+models. The demo first applies the explicit `ImageFit` plan when `auto_fit=true`
+(default), bounds the model canvas to 8–1024, then checks the actual VAE spatial
+factor. Long edges above 1024 are reduced proportionally with Lanczos; edge pixels
+pad the right/bottom to multiples of 8. Images below the limit are not enlarged.
+Original/content/canvas sizes and pixel hashes accompany every report. Uploaded
+masks may use these three coordinate spaces; original-size masks are resized
+nearest for binary mode or bilinear for soft mode, then padded with zeros.
+Drawing uses paint-layer alpha and still rejects stale backgrounds. A digest-bound
+session state retains original pixels for toggling without cumulative padding.
+Changing geometry clears masks/results. Disabling fitting preserves strict errors.
+Outputs remain on the model canvas and metric denominators include its padding;
+raw uploads and masks are retained when transformed. Feathering can expand the
+effective mask into padding under the existing feathering semantics. No core
+pipeline, VAE wrapper or research experiment silently adapts its inputs.
 The first valid run initializes a cached backend and subsequent runs reuse it under
-a lock. The process seed is set and recorded. Local/global modes call our editor;
-Reconstruct source calls our reconstruction pipeline. Optional full reconstruction
+a lock. The process seed is set and recorded. Output selection routes only required
+work: local/global Edit or source-control outputs call the editor; DDIM output
+calls reconstruction; VAE-only uses the VAE wrapper directly without U-Net/CLIP
+execution or mask validation. Selected VAE baselines reuse an already computed
+baseline when available. Optional full reconstruction
 on edit runs uses guidance 1/1, with separately enabled residual correction and
 the existing plain/refined latent-MSE selection. Editing stays on plain inversion.
+
+`include_vae_reconstruction`, `include_source_control` and `include_edit` are
+optional editing API switches, all defaulting to true for existing callers.
+Unrequested tensor/sampling fields are None, and their work is skipped. DDIM
+reconstruction separately supports `include_vae_reconstruction=true` by default.
+The demo explicitly disables unselected outputs and records `computed_outputs`;
+changing a display checkbox is not implemented as hiding an already computed image.
+At strength zero the final requested image still needs one VAE decode; it does
+not imply an extra hidden VAE baseline. No sampling equation or mask convention
+changes. The mode switch changes controls through scoped CSS so the paint canvas
+stays initialized even when its panel is visually hidden.
 
 Reports distinguish the matched editing source control from full source
 reconstruction. Optional raw-latent previews use actual stored IDs and are labelled

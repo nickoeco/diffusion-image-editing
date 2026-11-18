@@ -1,5 +1,10 @@
 # Development roadmap
 
+Demo maintenance, November 18: explicit automatic resizing/padding and aligned
+mask transforms are implemented at the UI/service boundary. See
+[image fitting](demo-image-fit.md) for validation and the pending browser check.
+This maintenance does not advance a research phase or change its gates.
+
 | Phase | Working deliverable | Gate |
 | --- | --- | --- |
 | 0 | Environment, package, config/logs, component loader, smoke scripts | Offline tests, installation, honest integration status; stop for user |
@@ -41,3 +46,10 @@ gates have recorded evidence; semantic reliability, dataset size, high-guidance
 fidelity and geometry preservation remain limitations. No unrequested stretch
 phase has started. Phase 7 implementation and tests are committed as `2e9af60`,
 followed by the separate measured-results and documentation commit.
+
+The editing demo follow-up adds explicit custom-image upload, mode-specific mask
+visibility and independently selected VAE/DDIM/edit/control outputs. Edit-only is
+the default, with unselected computation skipped. Existing pipeline defaults and
+semantic acceptance tooling remain intact. See `demo-controls.md` for focused
+compute-budget, HTTP and browser validation; these UI changes make no semantic
+acceptance claim.

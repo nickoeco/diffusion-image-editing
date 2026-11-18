@@ -1,5 +1,9 @@
 # Experiments
 
+The November 18 demo-only [image-fitting checks](demo-image-fit.md) validate
+geometry and input handling. They do not alter frozen research inputs, calibration
+settings, semantic acceptance cases or existing study metrics.
+
 Reconstruction smoke metrics are available from Phase 3. No formal ablation suite,
 editing evaluation or baseline comparison has been completed.
 

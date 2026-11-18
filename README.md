@@ -357,22 +357,36 @@ first run. Later runs reuse them; inference is serialized. Stop with Ctrl+C.
 Use `--port 7861`, `--config configs/default.yaml` or `--output-dir outputs/demo`
 to override launch settings. No weights download automatically.
 
-1. Upload an RGB image or load the included coffee example. Dimensions must be
-   divisible by the VAE factor (8 for this model), between 8 and 1024 pixels per
-   side; around 512 is recommended. Inputs are never silently resized or cropped.
-2. Choose Local edit, Global edit or Reconstruct source. Set source/target prompts,
-   sampling steps, strength, guidance and seed.
-3. For local editing, choose **Upload** for an aligned grayscale mask or **Draw**
-   and paint over the original. White/painted regions edit. The canvas stays visible
-   to avoid a Gradio hidden-canvas initialization issue; the unused mask is ignored.
+1. Click **Upload custom image** or load the included coffee example. **Automatically
+   resize and pad** defaults on: long edges above 1024 shrink proportionally, then
+   right/bottom edge padding makes both dimensions multiples of 8. Smaller images
+   are not enlarged and content is not cropped. **Image sizing** shows original,
+   content and canvas/output sizes. Outputs retain this fitted canvas size.
+   Disable fitting for strict input validation; around 512 pixels per side is
+   recommended. Core pipeline/experiment APIs retain their strict size contracts.
+2. Choose Local edit, Global edit or Reconstruct source, then select **Outputs to
+   calculate**. Editing defaults to Edited image only; Reconstruct source defaults
+   to DDIM reconstruction. VAE reconstruction, DDIM reconstruction and source-prompt
+   control are independently selectable where applicable. Unselected branches are
+   skipped, and at least one output is required. Set the relevant prompts/parameters.
+3. For local editing, choose **Upload** for a grayscale mask aligned to the original
+   upload, resized content or shown canvas, or **Draw** on the fitted image.
+   Image and mask share the same transform; entered mask padding is zero.
+   White/painted regions edit. Mask controls are hidden
+   for Global edit, Reconstruct source and reconstruction-only output selections.
+   CSS retains the initialized canvas while hiding the panel, so switching back
+   preserves usable paint tools; the unused mask is ignored.
    Brush, erase, undo and clear controls are available. Changing the original
-   clears the uploaded mask and painting to prevent stale alignment.
+   or toggling automatic fitting clears uploaded masks, painting and old results
+   to prevent stale alignment. Unrelated mask sizes are rejected.
 4. Feathering, latent blending and original-background pixel compositing are
-   independent controls. Advanced settings optionally calculate full source
-   reconstruction and decoded-latent previews. Full reconstruction uses guidance
+   independent controls. Select DDIM reconstruction to calculate full source
+   reconstruction; advanced settings control residual correction and decoded-latent
+   previews. Full reconstruction uses guidance
    1 independently of editing guidance and is slower with residual correction.
-5. Run and inspect the original, VAE baseline, optional full DDIM reconstruction,
-   edit, matched source control and effective mask. Download the result PNG or ZIP
+5. Run and inspect the original and selected outputs. VAE-only requests perform
+   no diffusion; Edit-only requests skip the source control, full DDIM reconstruction
+   and separate VAE baseline decode. Download the result PNG or ZIP
    containing images, prompts/settings, JSON/CSV metrics and environment/timings.
 
 Artifacts use isolated directories under `outputs/demo/<run-id>/`. The report
@@ -391,6 +405,8 @@ HTTP checks require local sockets and are a separate opt-in from offline tests:
 ```
 
 See [Phase 6 validation](docs/phase6-status.md) for executed evidence and limitations.
+See [selective demo controls](docs/demo-controls.md) for current output semantics,
+upload/reset behavior and the follow-up validation.
 
 ## Phase 7: reproducible evaluation
 
