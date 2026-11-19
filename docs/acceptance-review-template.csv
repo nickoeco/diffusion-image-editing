@@ -1,0 +1,13 @@
+case_id,category,split,run_id,freeze_id,semantic_score,preservation_score,boundary_score,verdict,semantic_notes,preservation_notes,boundary_notes,failure_tags,psnr_db,ssim,background_mae,metrics_report,boundary_panel,output_sha256
+color_dev_01,recolor,development,,,,,,not_run,,,,,,,,,,
+color_dev_02,recolor,development,,,,,,not_run,,,,,,,,,,
+color_holdout_01,recolor,holdout,,,,,,not_run,,,,,,,,,,
+color_holdout_02,recolor,holdout,,,,,,not_run,,,,,,,,,,
+replace_dev_01,replacement,development,,,,,,not_run,,,,,,,,,,
+replace_dev_02,replacement,development,,,,,,not_run,,,,,,,,,,
+replace_holdout_01,replacement,holdout,,,,,,not_run,,,,,,,,,,
+replace_holdout_02,replacement,holdout,,,,,,not_run,,,,,,,,,,
+style_dev_01,style,development,,,,,,not_run,,,,,,,,,,
+style_dev_02,style,development,,,,,,not_run,,,,,,,,,,
+style_holdout_01,style,holdout,,,,,,not_run,,,,,,,,,,
+style_holdout_02,style,holdout,,,,,,not_run,,,,,,,,,,

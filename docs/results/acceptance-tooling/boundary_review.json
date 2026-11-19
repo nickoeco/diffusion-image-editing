@@ -1,0 +1,53 @@
+{
+  "image_size_wh": [
+    600,
+    400
+  ],
+  "boxes_xyxy": [
+    [
+      268,
+      0,
+      332,
+      64
+    ],
+    [
+      414,
+      143,
+      478,
+      207
+    ],
+    [
+      268,
+      294,
+      332,
+      358
+    ],
+    [
+      122,
+      143,
+      186,
+      207
+    ],
+    [
+      268,
+      278,
+      332,
+      342
+    ]
+  ],
+  "extra_centers_xy": [
+    [
+      300,
+      310
+    ]
+  ],
+  "crop_size_requested": 64,
+  "zoom": 4,
+  "resampling": "nearest",
+  "selection": "source requested mask only; fixed order top/right/bottom/left; duplicate boxes removed",
+  "original_rgb_sha256": "0ce2b51640b9c95f19617f03eabf40c3f0368589cc1ee1190b70966165ac184f",
+  "edited_rgb_sha256": "925321268c325697d0c75d57116811ed641feaef30dac646ed84449b16bd6435",
+  "mask_l_sha256": "2d64bbe51e33192cb2fe2a72d545b9d56c3dc7e8c3c127ad55d062f8c285840a",
+  "raw_rgb_sha256": "df34bb0388b974b6dcb8408021d3b76c3e081e9980e0dfce7aa0fc0e3824eee1",
+  "note": "Evidence only; semantic/preservation/boundary ratings require separate review. Metrics must come from the recorded floating-tensor run."
+}
