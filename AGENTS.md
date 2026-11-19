@@ -16,6 +16,17 @@ existing work. Explain major architectural or dependency changes before making t
 
 ## Scope and implementation constraints
 
+- Current research priority (2026-11-18): pursue the custom DDIM editing route and
+  follow `docs/ddim-research-plan.md`. Keep instruction-editing models, explicit
+  RGB color constraints and their compositing studies as labelled reference
+  evidence. Do not expand those auxiliary branches as the active deliverable
+  unless the user redirects the project. Preserve their existing artifacts.
+- The calibration optimization/precision diagnostic is recorded in
+  `docs/calibration-diagnostic.md`. The next eligible deliverable is a separately
+  registered deterministic full-trajectory cap20/cap80 calibration comparison,
+  using actual propagated states. Keep source reconstruction thresholds;
+  attention editing remains conditional on its declared gate.
+
 - Build an educational, implementation-focused Stable Diffusion image editor in
   Python >=3.10 with PyTorch. Prioritize correctness, readability and reproducibility.
 - Pretrained VAE, CLIP tokenizer/text encoder and U-Net are allowed. Independently
@@ -97,6 +108,33 @@ existing work. Explain major architectural or dependency changes before making t
   steps, strength, guidance, runtime, outputs and JSON/CSV metrics. Define regional
   denominators; never compute perceptual region metrics by zeroing background.
 - Never fabricate results or claim improvement without measured evidence.
+- For semantic editing acceptance, follow `docs/acceptance.md`: twelve independent
+  cases, four per category (recolor/replacement/style), split into six development
+  and six holdout cases with two of each category per split. Tune on development
+  only; freeze assets, prompts/masks, method, parameters/seeds and review rules
+  before any holdout outputs. Keep exposed holdout cases as labelled regression
+  material after changes; use fresh unseen cases for new confirmation claims.
+- Rate semantic success, unrelated-content preservation and boundary quality
+  independently. Retain fixed-source boundary zooms and a complete per-case table.
+  Pixel metrics cannot establish semantic improvement or override a failed rating.
+- Human review interfaces must preserve raw rating versions and output/run
+  associations, reject stale writes, and keep zero distinct from unreviewed.
+  Show the literal generation source/target prompts beside comparisons. Browser
+  save/navigation checks must use a copied table, never fabricated real ratings.
+- Experimental per-image null-text calibration must keep model weights and
+  conditional text frozen, key embeddings by actual current timestep IDs, and
+  use source pivots only as loss targets. Never substitute pivots/pixels into
+  sampled states. Verify independent free replay without pivot access, pin the
+  calibrated dtype/branch-batching execution, retain failed layouts and report
+  forward, batch-element and backward work. A reconstruction gain does not pass
+  semantic acceptance or authorize attention editing before its declared gate.
+- Pin deterministic-algorithm, cuDNN, CUBLAS workspace and TF32 settings for GPU
+  calibration. Deterministic forward replay does not establish repeatable
+  optimization. Require repeated fixed-local controls within the pinned runtime;
+  retain failed/non-repeatable attempts and register execution-map corrections
+  separately. Distinguish upcast FP16-rounded weights from original FP32 weights.
+- Acceptance tables omit per-row reviewer identity and review timestamps. Preserve
+  raw scores/reasons with versioned records, run IDs and output hashes instead.
 
 ## Phase gates and workflow
 

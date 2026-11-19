@@ -10,10 +10,34 @@ follow [AGENTS.md](AGENTS.md).
 Project documentation is maintained in English. Workflow communication may use
 English, Chinese, or both.
 
+For the current two-candidate development acceptance comparison, the separate
+[human review interface](docs/review-ui.md) provides direct score/reason entry,
+image enlargement, matched boundary zooms and exact source/target prompts. CSV
+remains an export format; no model loading is needed for review.
+
 Reconstruction defaults to budgeted residual-refined DDIM with an end-to-end latent-error
 selection check. Plain DDIM remains available for teaching and controlled baselines.
 See [the drift investigation](docs/reconstruction-drift.md) for measured evidence,
 the computational trade-off and known failure cases.
+
+The opt-in [advanced reconstruction extension](docs/advanced-reconstruction.md)
+audits high-CFG fidelity and tests bounded per-image null-text calibration with
+frozen model weights. Reconstruction improves on two development inputs, but the
+predeclared latent-error/convergence gate remains open. Attention editing and
+production-default adoption have not started; source reconstruction is not an
+editing-success claim.
+
+The active research direction is the **custom DDIM editor**. The
+[evidence review and next-stage plan](docs/ddim-research-plan.md) summarizes all
+tested approaches, unresolved reconstruction/editability gates and the bounded
+deterministic full-trajectory budget comparison that comes next. Pretrained instruction editing
+and direct color postprocessing remain auxiliary references.
+
+The [calibration diagnostic](docs/calibration-diagnostic.md) has now completed:
+deterministic repeated local controls pass, a larger budget helps early steps,
+and FP32 execution alone does not resolve local convergence. The next experiment
+is a separately registered full-trajectory budget comparison. Source and semantic
+gates remain unmet; production defaults are unchanged.
 
 ## Installation (PowerShell, repository root)
 
@@ -459,6 +483,24 @@ Executed evidence: **34 custom cases, four baseline cases and five completed
 studies**, with full tests passing. Browse the [portable measured-result bundle](docs/results/phase7/README.md)
 for CSV/JSON, vector plots and example grids.
 
+## Semantic editing acceptance
+
+The [acceptance protocol](docs/acceptance.md) registers **12 independent task slots**:
+four each for recoloring, object replacement and style conversion, balanced into
+six development and six holdout cases. The canonical registry remains an
+assets-pending template; isolated local development trials are documented in the
+protocol. This is not a twelve-case acceptance pass. Existing Phase 7 images are
+historical evidence, not an unseen holdout set.
+
+Each case independently rates semantic success, unrelated-content preservation
+and boundary quality. A pass requires 2/2/2 on the registered 0–2 rubric; PSNR,
+SSIM and background MAE remain supporting preservation metrics. The method,
+parameters, prompts/masks and boundary review rules must be frozen before holdout
+outputs. The [blank per-case table](docs/acceptance-review-template.csv) contains
+no invented scores and requires no reviewer identity or review-time fields. An
+offline helper creates aligned source/raw/final boundary
+zooms, without model execution or automatic grading; see the protocol for commands.
+
 ## Known limitations
 
 Offline synthetic tests verify tensor contracts and equations; actual pretrained
@@ -472,7 +514,17 @@ for adverse roundtrips; passing equation tests alone does not imply fidelity. No
 general editing-quality improvement is claimed. Executed Phase 7 ablations are
 limited to the recorded inputs/settings and include changed geometry and failures.
 
+A separately labelled [pretrained instruction-editing reference](docs/instruction-reference.md)
+recolored the two exposed development photographs with InstructPix2Pix after an
+authorized fixed-revision download. Background/material changes remain, so this is
+evidence for another editing route, not a twelve-case acceptance pass or a change
+to the custom DDIM pipeline.
+
 ## Text-to-image interface
+
+The [workspace integration review](docs/workspace-integration-review.md) explains
+which acceptance tools are retained, why the human review demo stays separate,
+and which experimental/reference methods remain outside production defaults.
 
 The demo offers four tabs: **Text to image**, **Local edit**, **Global edit** and
 **Reconstruction**, each retaining its own inputs and results. The txt2img tab and

@@ -47,12 +47,82 @@ fidelity and geometry preservation remain limitations. No unrequested stretch
 phase has started. Phase 7 implementation and tests are committed as `2e9af60`,
 followed by the separate measured-results and documentation commit.
 
+The next user-directed step establishes a semantic acceptance protocol before
+further method tuning: twelve independent task slots, balanced development/holdout
+splits, independent three-dimension ratings, boundary zooms and a per-case table.
+`acceptance.md` defines the freeze rule. Assets are pending audit and no new
+holdout/model evaluation has begun. This does not extend the earlier two-image
+results into a general editing-success claim.
+
+A later isolated working copy assembled the twelve inputs and ran six development
+cases, receiving human verdicts of 1 pass, 2 partial and 3 fail. The next controlled
+development round generated twelve outputs across two one-variable profiles;
+these require fresh human ratings. Per-row reviewer/time fields were removed by
+user request. Holdout execution and method freeze remain pending; none of these
+local trials establishes a completed semantic acceptance gate.
+
+The local development comparison now has a dedicated model-free human review
+interface with direct score/reason input, draft/completed saves, revision checks
+and versioned raw tables. Comparison figures and the UI include exact source and
+target prompts. This improves evidence review; it does not establish a semantic
+pass, select a parameter profile, freeze the method or authorize holdout inference.
+
 The editing demo follow-up adds explicit custom-image upload, mode-specific mask
 visibility and independently selected VAE/DDIM/edit/control outputs. Edit-only is
 the default, with unselected computation skipped. Existing pipeline defaults and
 semantic acceptance tooling remain intact. See `demo-controls.md` for focused
 compute-budget, HTTP and browser validation; these UI changes make no semantic
 acceptance claim.
+
+An explicitly requested advanced reconstruction extension now audits the high-CFG
+source path before attention-based editing. The ordinary/matched-guidance and
+existing residual controls fail the new engineering screen on two development
+inputs. Output-local null-text calibration with frozen weights substantially
+improves source reconstruction and has exact batch-matched independent replay.
+The latent-error/local-convergence gate remains open; the next deliverable is a
+separately registered convergence/precision study, followed by attention editing
+only after that gate is resolved. Defaults and holdout status are unchanged.
+See [advanced-reconstruction.md](advanced-reconstruction.md).
+
+The subsequent authorized [instruction-reference study](instruction-reference.md)
+completed two real InstructPix2Pix recolorings with remaining background/material
+changes. It establishes an alternative editing route for these inputs without
+closing the custom reconstruction gate or passing semantic acceptance. A separate
+fixed-output localization study then generated hard and inward-feather composites.
+Both restore requested-mask exterior pixels exactly, while red apple rims and blue
+car strips remain. Seven CPU tests pass; four new human rows remain unreviewed and
+browser verification did not complete. Broader development/holdout validation
+still requires the declared registration, freeze and independent review rules.
+
+## Active research priority: custom DDIM
+
+On November 18, 2026, the user selected the custom DDIM route as the main research
+direction again. The installed editor already uses it; pretrained instruction
+editing and explicit color postprocessing remain preserved auxiliary references.
+The authoritative [evidence review and plan](ddim-research-plan.md) specifies:
+
+1. Register a bounded calibration optimization/precision diagnostic, beginning
+   with fixed local levels and gradient/update evidence rather than another
+   strength/guidance sweep.
+2. Use its evidence for one controlled source reconstruction improvement, keeping
+   existing gates, calibrated execution layout and independent pivot-free replay.
+3. After the source gate passes, register minimal custom attention control with
+   no-op equivalence, token alignment and matched text-swap controls.
+4. Validate localization and all six development cases; freeze before six holdout
+   cases and independent semantic/preservation/boundary ratings.
+
+This decision does not execute future stages or promote numerical prototypes into
+production. Failed gates stop progression; thresholds are not relaxed. Auxiliary
+reference polishing is no longer the active deliverable.
+
+Stage A has since completed with recorded real GPU probes. Two source replays
+match prior PNGs exactly; an initial optimization-repeatability failure is
+retained and a separately registered deterministic correction passes6/6 repeated
+local controls. FP16 cap80 reaches tolerance on2/6 problems; FP16/FP32 cap20
+reach0/6. Sixteen offline tests pass and58 artifacts are verified. See
+[calibration-diagnostic.md](calibration-diagnostic.md). Stage B now requires a
+separate full-trajectory cap20/cap80 registration using actual propagated states.
+No new full-trajectory candidate or attention editor has been executed.
 
 The user separately requested a txt2img demo interface. A custom-sampler generation
 pipeline, independent panel and `/txt2img` API now support prompt-only generation

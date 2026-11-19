@@ -180,6 +180,57 @@ pipeline's supported latent input/output; random noising and reverse diffusion
 remain built-in. Its random posterior/noise, update precision and lack of inversion
 or a control branch are declared differences. Core modules never import it.
 
+## Acceptance review layer
+
+`configs/acceptance/cases.yaml` is a separate task registry, with balanced
+development/holdout membership and explicit case-specific semantic, preservation
+and boundary requirements. It is not a runnable sweep and its assets are pending.
+`evaluation/acceptance.py` validates registration, creates blank review tables,
+computes the independent three-score verdict and renders source-mask-based zooms
+using Pillow/NumPy. It imports no model libraries, calls no pipeline and assigns
+no visual rating. `scripts/prepare_acceptance_review.py` is the thin offline CLI.
+The split/freeze protocol is binding workflow guidance; existing model runners
+are unchanged and do not automatically enforce access to holdout cases.
+Review tables omit reviewer identity and review-time columns; versioned raw
+ratings, run IDs and output hashes provide the evidence association instead.
+
+`demo/review_app.py` is a separate, model-free local Gradio interface for the
+two-candidate development comparison. `evaluation/review_store.py` owns rating
+validation, output-hash/shared-prompt checks, stale-write detection, snapshots and
+atomic CSV replacement. `evaluation/review_figures.py` appends exact prompt text
+to derived figures without changing the original image area. It does not change
+editing algorithms or the inference demo. See [review-ui.md](review-ui.md).
+
+## Experimental guided reconstruction extension
+
+The [advanced reconstruction extension](advanced-reconstruction.md) uses an
+output-local frozen runtime snapshot and a separate differentiable U-Net adapter
+to optimize only per-timestep unconditional text inputs. Production inference
+wrappers, model weights and pipeline defaults remain unchanged. Source pivots are
+loss targets, never replacements for sampled states. A pivot-free replay verifies
+the saved null map and calibrated execution layout. Initial separate-branch and
+corrected batched-branch results remain independent artifacts. The strict source
+reconstruction gate is still open, so no attention-control layer is integrated.
+
+A separate output-local InstructPix2Pix reference calls the built-in pipeline only
+from its labelled baseline script. Its eight-channel image conditioning and
+three-branch guidance are not imported into the installed editor. Fixed inputs,
+runtime/code hashes and measured work preserve a reviewable boundary between
+this different pretrained method and the custom reconstruction implementation.
+See [instruction-reference.md](instruction-reference.md).
+
+The active research priority is the [custom DDIM route](ddim-research-plan.md).
+Reference editors remain output-local evidence. The next calibration diagnostic
+does not change installed inference; any future attention controller requires
+the source gate, an explained architecture change and a no-op equivalence check.
+
+The executed [calibration diagnostic](calibration-diagnostic.md) recovers actual
+states by pivot-free replay, stores updated-level loss targets separately, and
+instruments fixed-state optimization in an output-local adapter. Deterministic
+settings are part of its experimental execution map. Parameter-value hashes
+isolate FP16/FP32 arithmetic sensitivity without swapping checkpoints. No installed
+controller or diffusion component is changed.
+
 ## User-requested text-to-image interface
 
 `pipelines/generation.py` composes text conditioning, model-configured Gaussian

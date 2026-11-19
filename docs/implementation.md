@@ -433,8 +433,84 @@ mismatched budgets. It records different total work and pipeline latent precisio
 
 See `phase7-status.md` and `experiments.md` for executed results and limitations.
 
+## Semantic acceptance registration and evidence
+
+`evaluation/acceptance.py` validates twelve unique cases balanced by category and
+split, rejects repeated declared source groups/paths, and leaves missing asset
+fields explicitly pending. Visual near-duplicate checks and verified provenance
+remain dataset-audit work; different filenames alone do not prove independence.
+Blank review rows are `not_run` with empty metrics/ratings. Tables retain run/output
+references and raw reasons but omit reviewer identity and review timestamps.
+`case_verdict` accepts
+only integer 0/1/2 or missing ratings; a pass requires all three ratings to be 2,
+independently of numeric preservation scores.
+
+Boundary evidence uses EXIF-oriented, identically sized images and a partial L/1
+requested mask. At threshold 0.5, a morphological contour supplies deterministic
+top/right/bottom/left anchors, with ties toward its centroid. Identical clipped
+source boxes are applied to original/raw/final images and enlarged with nearest
+sampling (64 source pixels, 4× by default). Pre-registered additional centers are
+supported and recorded. Locator, panel, mask and RGB/mask hashes are saved; the
+helper refuses evidence overwrite and performs no metric recomputation or model
+execution. See `acceptance.md` for the freeze protocol and rating definitions.
+
 References: [DDIM paper](https://arxiv.org/abs/2010.02502),
 [Classifier-Free Guidance](https://arxiv.org/abs/2207.12598).
+
+## Model-free development review
+
+The separate [review interface](review-ui.md) reads actual generation reports and
+offers per-dimension radio controls and reason fields for two candidates per
+development source. Only rating fields and derived verdicts can be saved. Saved
+output SHA-256 values are checked, shared prompts must match, stale table revisions
+are rejected and original table bytes are snapshotted before atomic replacement.
+One writer server per table is supported. No reviewer/time fields are collected.
+Prompt annotation wraps complete source/target strings below comparisons, keeps
+their existing pixel area intact and creates supplements for hashed run figures.
+Offline persistence/figure tests are separate from opt-in Gradio construction and
+browser checks. The real rating table is never populated by UI smoke tests.
+
+## Experimental null-text input calibration
+
+The opt-in [advanced reconstruction extension](advanced-reconstruction.md) minimizes
+the MSE between our actual reverse DDIM update and the source pivot at its updated
+timestep, optimizing only the unconditional text embedding. Source text, model
+weights, schedule and decoder remain frozen. The actual reverse result is propagated;
+no pivot/image substitution is permitted. Best evaluated embeddings are retained
+and reloaded for independent sampling without source-pivot access.
+
+The existing model predictor is inference-only; an output-local adapter enables
+autograd to input embeddings without changing that predictor. Normal FP32 clones
+separate inference tensors from autograd inputs. Null embeddings are keyed by actual
+current timestep IDs, including the update that ends at CLEAN=-1. FP16 branch
+batching is part of the calibrated map: optimizing/replaying with different layouts
+measurably changes results. The batch-matched prototype has exact free replay and
+substantially improved reconstruction, but latent-error and local convergence
+requirements are not yet met. It is not an installed editing mode or a semantic
+acceptance result.
+
+The independent [instruction-editing reference](instruction-reference.md) uses
+cached, pinned InstructPix2Pix FP16 safetensors and its native Euler ancestral
+scheduler. It retains safety checking, records literal instructions, and measures
+50 U-Net forwards / 150 branch-batch elements per case. Two actual GPU runs
+completed with finite latents; six offline contract tests and a 24-artifact audit
+pass. This output-local baseline does not alter production math or defaults.
+
+The user has returned research priority to the
+[custom DDIM implementation](ddim-research-plan.md). Next is a bounded diagnostic
+of local optimization losses, gradients, effective FP16 embedding updates and
+precision/budget sensitivity. Attention editing remains a conditional future
+deliverable; no new controller or numerical candidate is implemented by this
+documentation change.
+
+That [diagnostic has since executed](calibration-diagnostic.md). An initial strict
+optimization control failed and was retained; the original helper also varied
+under repeated GPU backward execution. A separately registered deterministic
+runtime passes six exact repeated controls and cap80 prefix checks. Local
+gradients/updates, effective input casts and best evaluated candidates are saved.
+FP16 cap80 reaches tolerance on2/6 problems; FP16/FP32 cap20 on0/6. Sixteen focused
+offline tests pass and58 artifacts are verified. No production math/default change
+or full-trajectory improvement is claimed.
 
 ## Text-to-image orchestration
 

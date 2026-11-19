@@ -181,6 +181,201 @@ includes aggregate CSV/JSON, plots and explicitly resized JPEG previews.
 See [the complete Phase 7 report](phase7-status.md) for tables, actual validation
 totals, metric denominators and remaining limitations. CLIP/LPIPS were not run.
 
+## Next acceptance set: registered, not executed
+
+The user requested a separate semantic acceptance gate. The new
+[protocol](acceptance.md) and [12-row table](acceptance-review-template.csv)
+pre-register four recoloring, four replacement and four localized style tasks,
+with 6 development/6 holdout cases. Inputs, masks and provenance are pending; no
+new benchmark inference, tuning or holdout scoring has been performed. Historical
+coffee/astronaut outputs cannot serve as unseen holdout material.
+
+Future comparisons must report semantic success, unrelated-content preservation
+and boundary quality separately, along with existing floating PSNR/SSIM/background
+MAE. Fixed requested-mask boundary zooms and pre-registered critical details are
+required. A passing pixel metric cannot override a semantic or boundary failure.
+The method and parameters must be frozen before holdout execution. Any renderer
+smoke using old outputs is tooling evidence only, not a new acceptance result.
+
+### Isolated local development follow-up
+
+A subsequent actual-editability diagnostic compared empty-null and saved
+calibrated-null inputs on the same timestep741 latent at guidance12, using a
+single color-word substitution. All four source controls replayed old PNGs exactly.
+Unmasked/uncomposited target branches still failed to show reliable requested
+color with preserved structure: calibrated apple remained red/orange and car
+blue/teal with substantial geometry/background changes. This separates improved
+source reconstruction from actual editability; it does not waive the incomplete
+calibration gate or demonstrate failure of an unimplemented attention method.
+Work:304 new U-Net calls /608 batch elements, no new inversion/calibration/backward.
+No six-case expansion, human grade, holdout output or default change. Full evidence
+is local under `development-round-09-editability/` in the isolated acceptance root;
+see [advanced-reconstruction.md](advanced-reconstruction.md) for the lineage.
+
+The next [advanced reconstruction extension](advanced-reconstruction.md) crossed
+inversion/reverse guidance 1/7.5/12 on the two exposed recoloring sources, with no
+masks, compositing or edited text, and retained an independent residual-corrected
+12/12 control. Existing methods failed the declared high-CFG gate. A bounded
+null-text input-calibration prototype then improved VAE-relative reconstruction
+PSNR from 19.525 to 36.952 dB on apple and 15.895 to 31.315 dB on car, with frozen model
+weights. A separate batch-layout correction was required after FP16 separate-vs-
+batched replay sensitivity was measured; both trials are retained. Primary saved-null
+replays are exact, but latent MSE .002158/.001283 exceeds the predeclared .001 limit,
+and 0/38 local levels per input reached 1e-5 in 20 evaluations. No attention editing,
+new human rating, holdout execution, threshold relaxation or default change follows
+this incomplete gate. See the extension report for full budgets and controls.
+
+An explicitly labelled color-postprocessing experiment then compared a color-only
+baseline against prior diffusion plus the same correction on the two development
+recoloring cases. Fixed numeric green/yellow swatches provide additional supervision;
+these are not prompt-only DDIM improvements. The source/effective masks and feather
+were unchanged. A gamut-bounded chroma-direction projection preserved operation-input
+linear-sRGB luminance to numerical precision before PNG export. Body colors visibly
+changed, with remaining car blue edges, vivid apple green and inherited hybrid
+geometry/texture changes requiring human review. Exact-zero-mask pixels stayed
+unchanged. Ten offline tests passed; no new inference was performed, and the hybrid's
+prior diffusion cost is disclosed. Two-case/four-output grading is available in the
+local review page; no pass or default change is claimed. Full evidence, assumptions,
+W3C luminance reference, quantization errors and matched-input metric definitions
+are retained under
+`outputs/acceptance/2026-11-16-side-validation/development-round-06/FINDINGS.md`.
+
+A two-case source-reference pilot subsequently changed only the reference epsilon
+branch: `epsilon_source + 12*(epsilon_target-epsilon_source)` replaced conventional
+unconditional CFG, using both predictions at the same edited latent/timestep.
+Original prompts, start 741/strength .75, masks, blending and final compositing
+stayed fixed. The controls exactly replayed previous PNGs. Candidates retained
+red/orange apple color and blue/teal car color while altering texture/shape, so
+the pre-registered screening condition was not met and six-case expansion was
+not executed. Apple PSNR rose despite unsuccessful recoloring. Six offline tests
+passed; actual work was 328 U-Net calls / 556 batch elements. The experimental
+predictor remains output-local; defaults, human ratings and holdout execution
+were unchanged. Qualified findings and unsuccessful examples are retained in
+`outputs/acceptance/2026-11-16-side-validation/development-round-05/FINDINGS.md`.
+
+A subsequent two-task conditioning diagnostic used identical seed-42 Gaussian
+starts across source/full-target/color-word-only prompts and compared those with
+stored source-inverted starts at actual timestep 741 and 981. Direct custom-DDIM
+generation produced the requested green apples and yellow cars. Actual token
+records showed no truncation, and CLIP embeddings/U-Net predictions responded to
+the target text. At timestep 741, unmasked target samples still retained much of
+the source color; at 981, the car became yellow with substantial scene/geometry
+changes while the apple remained mixed red/green. This narrows the issue to the
+current editing trade-off under source-derived states; it does not prove a unique
+inversion bug. Source/full-target 741 outputs exactly replayed the prior raw
+diagnostic. Work: 988 U-Net calls / 1,816 batch elements; four offline numerical
+tests passed. No human ratings or holdout outputs were added. Exact prompts,
+token/epsilon records, tensors and qualified findings are stored locally under
+`outputs/acceptance/2026-11-16-side-validation/development-round-04/`.
+
+An additional isolated development diagnostic changed only `latent_blending`
+from true to false relative to the guidance-12 profile, keeping the requested
+mask, prompts, strength, steps, seeds, precision and final compositing fixed.
+Because shared pipeline files had concurrent changes, an output-local runtime
+snapshot restored the prior recorded source hashes. Six fresh controls reproduced
+the prior saved PNGs exactly before six new candidates ran. Preliminary visual
+inspection still found a blue car and a predominantly red apple after blending
+was disabled; fixed-requested-background MAE increased for all six cases. These
+are diagnostic observations, not automatic acceptance grades or a unique root
+cause. Human review remains pending. The successful runs used 1,512 U-Net calls;
+an initial evidence-validator tuple/list failure is retained and brings total
+work to 1,638 calls. See the local
+`outputs/acceptance/2026-11-16-side-validation/development-round-03/ANALYSIS.md`
+for controls, per-case metrics, verification limits and the unchanged holdout gate.
+
+The follow-up now includes a [model-free human review UI](review-ui.md) for the
+two candidates, with independent score/reason controls and literal source/target
+prompts beside all comparisons. Prompt-bearing derived figures retain original
+pixel areas; hashed raw run comparisons remain untouched. This adds no inference,
+human rating, profile selection or holdout evidence. The verification run recorded
+244 passed / 24 skipped default tests, plus 11 passing opt-in review tests covering
+Gradio construction and callback navigation with temporary ratings. The live
+loopback server returned HTTP 200. Front-end browser interaction verification
+remains pending: computer-use stopped because it could not confidently determine
+the Windows browser URL. Construction/callback checks do not prove rendered UI
+behavior. No synthetic test scores were added to the real human review table.
+
+After the initial registration, a separate local working copy at
+`outputs/acceptance/2026-11-16-side-validation/` assembled twelve real-photo inputs
+and masks. Six first-round development outputs were reviewed by the user: 1 pass,
+2 partial and 3 fail, with all preservation/boundary scores 2. Reasons identify
+unchanged colors, weak style and a floating vase. Raw ratings/reasons are retained;
+reviewer identity/time fields were removed from current tables at user request.
+
+Two declared one-variable profiles produced twelve new development outputs on
+the same six sources (strength 1, or guidance 12; other conditions fixed). Their
+manual ratings remain blank. Parameter/hash/crop verification passed, but this is
+not semantic acceptance. Holdout outputs remain zero and method selection/freeze
+is pending the next development review. No per-case best-output selection or
+PSNR-based improvement claim is made.
+
+## Editing demo computation follow-up
+
+The demo now defaults to Edit-only and skips unselected VAE/DDIM/source-control
+work. Synthetic call-count checks distinguish real branch skipping from hiding
+computed images: at three levels and strength 0.5, Edit-only uses five U-Net
+forwards, plain DDIM-only six and VAE-only zero. Combined outputs share one VAE
+baseline decode. The cached-weight 64×64 check measured six forwards for a
+four-step, strength-0.5 edit and zero for VAE-only. Browser validation uploaded the
+astronaut image, checked mode-specific mask visibility and painting after a mode
+switch, and displayed a VAE-only result with 0.61 s compute / 7.01 s first loading.
+This validates UI routing and resource use, not semantic editing quality or any
+acceptance rating. See `demo-controls.md` for the complete behavior and checks.
+
+## Pretrained instruction-editing reference
+
+After explicit authorization for new weights, fixed-revision InstructPix2Pix
+generated one output for each exposed development recoloring case: a green apple
+and yellow car body. Background tint and unrelated roof/window/detail changes
+remain; no human scores or acceptance pass were assigned. The two cases used
+100 measured U-Net forwards / 300 batch elements total, zero backward passes and
+7.451 summed inference seconds. Six offline tests pass and 24 recorded artifacts
+were verified. Different weights, conditioning, scheduler, precision and total
+work prevent model-only or matched-compute causal claims. See
+[instruction-reference.md](instruction-reference.md) for settings, measured
+preservation metrics, evidence locations and limits. No holdout output was made.
+
+## Fixed-output localization reference and route decision
+
+Two registered composites per input were computed from the same fixed reference
+output: a hard requested mask and a four-pixel inward smoothstep feather, blended
+in linear RGB. Requested masks and source-selected boundary coordinates were
+unchanged. Both methods restore the requested-mask exterior exactly in float and
+PNG, with requested-background MAE zero. Effective-mask metrics are separate;
+feathered effective-background MAE is 0.001250/0.001850 for apple/car. Visual
+inspection shows retained red apple rims and blue car strips. These results do
+not pass semantic/boundary acceptance. Seven CPU tests pass; no new U-Net or
+backward work was used. Four human rows remain unreviewed. Browser verification
+did not complete because the computer-use tool could not reliably identify the
+current Chrome URL; no browser save/navigation pass is claimed.
+
+On November 18, 2026, the user redirected the main research priority to custom
+DDIM editing. Auxiliary pretrained/color/compositing artifacts remain evidence.
+[ddim-research-plan.md](ddim-research-plan.md) consolidates all trials, actual
+rating status and the next bounded calibration optimization/precision diagnostic.
+Reconstruction gate thresholds, human ratings, defaults and holdout state are
+unchanged. This route decision does not execute new inference or optimization.
+
+## Executed calibration optimization/precision diagnostic
+
+The subsequent authorized stage A recovered the old calibrated source states by
+pivot-free replay and tested fixed current levels741/381/1 on both inputs. The
+initial cap20 bitwise-optimization check failed; bounded repeats of the original
+helper also differed, despite identical initial losses. That attempt is retained.
+A separate deterministic registration passes6/6 exact repeated local controls;
+all cap80 first20 losses match cap20. Parameter hashes verify identical values
+between FP16 weights and their FP32 upcast.
+
+Cap20 FP16 and FP32 reach tolerance on0/6 problems. Cap80 FP16 reaches it on2/6,
+both early levels (apple evaluation47, car66); later fixed problems remain above
+tolerance. Effective FP16 updates are not entirely lost to casting. This supports
+a bounded full-trajectory budget comparison as the next test, not a precision-only
+fix or a source/semantic pass. Sixteen offline tests pass and58 artifacts are
+verified. All retained new forward work totals1,074 calls /2,148 batch elements;
+backward accounting distinguishes persisted counters from one failed attempt's
+inferred count. See [calibration-diagnostic.md](calibration-diagnostic.md) for
+tables, scientific plots, precise scope/cost and unchanged gates.
+
 ## Text-to-image interface checks (2026-11-18)
 
 The separately requested txt2img UI/API was checked with synthetic CPU components:
