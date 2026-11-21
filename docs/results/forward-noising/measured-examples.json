@@ -1,0 +1,503 @@
+[
+  {
+    "mode": "img2img",
+    "config": {
+      "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+      "revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+      "device": "auto",
+      "precision": "auto",
+      "local_files_only": true,
+      "cache_dir": ".cache/huggingface",
+      "seed": 42,
+      "log_level": "INFO"
+    },
+    "request": {
+      "mode": "img2img",
+      "prompt": "a black and white pencil drawing of a cup of coffee, detailed sketch, pencil shading on white paper",
+      "negative_prompt": "",
+      "steps": 50,
+      "strength": 0.85,
+      "guidance": 7.5,
+      "seed": 42,
+      "mask_source": "Upload",
+      "soft_mask": false,
+      "feather_radius": 0,
+      "latent_blending": true,
+      "preserve_background": true,
+      "left": 0,
+      "right": 128,
+      "top": 0,
+      "bottom": 0,
+      "overlap": 0,
+      "fill": "edge"
+    },
+    "selection": {
+      "strength": 0.85,
+      "reverse_steps": 42,
+      "start_timestep": 821,
+      "alpha_cumprod": 0.030549250543117523
+    },
+    "sampling_timesteps": [
+      821,
+      801,
+      781,
+      761,
+      741,
+      721,
+      701,
+      681,
+      661,
+      641,
+      621,
+      601,
+      581,
+      561,
+      541,
+      521,
+      501,
+      481,
+      461,
+      441,
+      421,
+      401,
+      381,
+      361,
+      341,
+      321,
+      301,
+      281,
+      261,
+      241,
+      221,
+      201,
+      181,
+      161,
+      141,
+      121,
+      101,
+      81,
+      61,
+      41,
+      21,
+      1,
+      -1
+    ],
+    "noise": {
+      "seed": 42,
+      "generator_device": "cpu",
+      "dtype": "float32",
+      "shape": [
+        1,
+        4,
+        50,
+        75
+      ],
+      "sha256": "645616dbf159acfaf06e479f37a466f548a7e66b8c75464a6014d4e3e87ec415",
+      "known_region_policy": "same epsilon, q(z_s|z0) at UPDATED timestep s; CLEAN is exact z0"
+    },
+    "metrics": {
+      "vae": {
+        "psnr_db": 25.656063517684437,
+        "ssim": 0.7398560643196106
+      },
+      "raw": {
+        "psnr_db": 13.477004989026327,
+        "ssim": 0.2826594412326813
+      },
+      "edited": {
+        "psnr_db": 13.477004989026327,
+        "ssim": 0.2826594412326813
+      }
+    },
+    "background_metrics": null,
+    "retained_source_metrics": null,
+    "metric_note": "Scores measure preservation, not semantic success. For outpainting, full-canvas scores compare generated borders to a synthetic initialization, not ground truth. Judge new content and seams visually.",
+    "metric_settings": {
+      "data_range": 1,
+      "color": "RGB",
+      "ssim_window": 7,
+      "ssim_gaussian_weights": false,
+      "ssim_sample_covariance": true,
+      "background_denominator": "3*sum(1-mask)",
+      "null_psnr": "positive region weight or defined whole image: exact match; empty region: undefined"
+    },
+    "compute_seconds": 4.1958631000015885,
+    "runtime": {
+      "device": "cuda",
+      "unet_dtype": "torch.float16",
+      "vae_dtype": "torch.float32",
+      "peak_cuda_allocated_bytes": 3272922112
+    },
+    "file_sha256": {
+      "canvas.png": "bc7c679e93a04b35aef5c5d644f0293d6aac8df7ccbba06f1d5bdddc0285050b",
+      "comparison.png": "36514f54beb83a9d030ce2df5386037ba61799c47feb17104e3e48db9144265c",
+      "edited.png": "620bb158845af88bef3e590a3126b57b1ff1d2cddd6d9df97f73dbfb189a6375",
+      "metrics.csv": "8a848e4389398908cbd372b07bda6adb58a7034014b41c3882084ad38f5df14d",
+      "noise.pt": "af79242d26cf0b2dda112703799b385efe3c95740582c207ba9b9ca2c6b9c8d2",
+      "original.png": "bc7c679e93a04b35aef5c5d644f0293d6aac8df7ccbba06f1d5bdddc0285050b",
+      "raw.png": "620bb158845af88bef3e590a3126b57b1ff1d2cddd6d9df97f73dbfb189a6375",
+      "vae.png": "8a9e464f20908720cdb8d6ddb4812847836be430670bc17a4c3143b4169e1279"
+    }
+  },
+  {
+    "mode": "inpaint",
+    "config": {
+      "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+      "revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+      "device": "auto",
+      "precision": "auto",
+      "local_files_only": true,
+      "cache_dir": ".cache/huggingface",
+      "seed": 42,
+      "log_level": "INFO"
+    },
+    "request": {
+      "mode": "inpaint",
+      "prompt": "a black and white pencil drawing of a cup of coffee, detailed sketch, pencil shading on white paper",
+      "negative_prompt": "",
+      "steps": 50,
+      "strength": 0.85,
+      "guidance": 7.5,
+      "seed": 42,
+      "mask_source": "Upload",
+      "soft_mask": false,
+      "feather_radius": 0,
+      "latent_blending": true,
+      "preserve_background": true,
+      "left": 0,
+      "right": 128,
+      "top": 0,
+      "bottom": 0,
+      "overlap": 0,
+      "fill": "edge"
+    },
+    "selection": {
+      "strength": 0.85,
+      "reverse_steps": 42,
+      "start_timestep": 821,
+      "alpha_cumprod": 0.030549250543117523
+    },
+    "sampling_timesteps": [
+      821,
+      801,
+      781,
+      761,
+      741,
+      721,
+      701,
+      681,
+      661,
+      641,
+      621,
+      601,
+      581,
+      561,
+      541,
+      521,
+      501,
+      481,
+      461,
+      441,
+      421,
+      401,
+      381,
+      361,
+      341,
+      321,
+      301,
+      281,
+      261,
+      241,
+      221,
+      201,
+      181,
+      161,
+      141,
+      121,
+      101,
+      81,
+      61,
+      41,
+      21,
+      1,
+      -1
+    ],
+    "noise": {
+      "seed": 42,
+      "generator_device": "cpu",
+      "dtype": "float32",
+      "shape": [
+        1,
+        4,
+        50,
+        75
+      ],
+      "sha256": "645616dbf159acfaf06e479f37a466f548a7e66b8c75464a6014d4e3e87ec415",
+      "known_region_policy": "same epsilon, q(z_s|z0) at UPDATED timestep s; CLEAN is exact z0"
+    },
+    "metrics": {
+      "vae": {
+        "psnr_db": 25.656063517684437,
+        "ssim": 0.7398560643196106
+      },
+      "raw": {
+        "psnr_db": 16.17600214479583,
+        "ssim": 0.55937659740448
+      },
+      "edited": {
+        "psnr_db": 16.641683345233364,
+        "ssim": 0.7916543483734131
+      }
+    },
+    "background_metrics": {
+      "raw": {
+        "background_weight_pixels": 171241.0,
+        "background_mae": 0.040632647354672216,
+        "background_psnr_db": 24.637683567705764,
+        "zero_mask_pixels": 171241,
+        "zero_mask_mae": 0.040632647354672216
+      },
+      "final": {
+        "background_weight_pixels": 171241.0,
+        "background_mae": 0.0,
+        "background_psnr_db": null,
+        "zero_mask_pixels": 171241,
+        "zero_mask_mae": 0.0
+      },
+      "requested_raw": {
+        "background_weight_pixels": 171241.0,
+        "background_mae": 0.040632647354672216,
+        "background_psnr_db": 24.637683567705764,
+        "zero_mask_pixels": 171241,
+        "zero_mask_mae": 0.040632647354672216
+      },
+      "requested_final": {
+        "background_weight_pixels": 171241.0,
+        "background_mae": 0.0,
+        "background_psnr_db": null,
+        "zero_mask_pixels": 171241,
+        "zero_mask_mae": 0.0
+      }
+    },
+    "retained_source_metrics": null,
+    "metric_note": "Scores measure preservation, not semantic success. For outpainting, full-canvas scores compare generated borders to a synthetic initialization, not ground truth. Judge new content and seams visually.",
+    "metric_settings": {
+      "data_range": 1,
+      "color": "RGB",
+      "ssim_window": 7,
+      "ssim_gaussian_weights": false,
+      "ssim_sample_covariance": true,
+      "background_denominator": "3*sum(1-mask)",
+      "null_psnr": "positive region weight or defined whole image: exact match; empty region: undefined"
+    },
+    "compute_seconds": 3.7758935999590904,
+    "runtime": {
+      "device": "cuda",
+      "unet_dtype": "torch.float16",
+      "vae_dtype": "torch.float32",
+      "peak_cuda_allocated_bytes": 3272937472
+    },
+    "file_sha256": {
+      "canvas.png": "bc7c679e93a04b35aef5c5d644f0293d6aac8df7ccbba06f1d5bdddc0285050b",
+      "comparison.png": "91d9a4e5c19ca6fe556369b7a0bcb84abb24f172cfda178b9e011f1b784d369f",
+      "edited.png": "b0f72f09b21d44161407e4986b4d9b7f26b7724840c91119c98a509d06e22875",
+      "effective_mask.png": "fa137713d6a91c2c70396bc6b23882af6bc46480d279ee4b3f7d9667136f5757",
+      "masks.pt": "cb04f3e4fe2808d96bfe9dbeb1fd8b32621e1953969356119732b309125005f7",
+      "metrics.csv": "a96522deaa0006159ddf32ef0951a0caefe1f4395d95c388cc715b71275ac241",
+      "noise.pt": "af79242d26cf0b2dda112703799b385efe3c95740582c207ba9b9ca2c6b9c8d2",
+      "original.png": "bc7c679e93a04b35aef5c5d644f0293d6aac8df7ccbba06f1d5bdddc0285050b",
+      "raw.png": "1a6e6ae55aedbd495d5d2d7a6aab44652be67a1a52693ff0c7bff06057225357",
+      "requested_mask.png": "231b57c44fc9e90fb2deb71c04e54def30c6d4b2f3cc16f4c9c5435e1da20b28",
+      "vae.png": "8a9e464f20908720cdb8d6ddb4812847836be430670bc17a4c3143b4169e1279"
+    }
+  },
+  {
+    "mode": "outpaint",
+    "config": {
+      "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+      "revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+      "device": "auto",
+      "precision": "auto",
+      "local_files_only": true,
+      "cache_dir": ".cache/huggingface",
+      "seed": 42,
+      "log_level": "INFO"
+    },
+    "request": {
+      "mode": "outpaint",
+      "prompt": "a wide photo of a cup of coffee on a wooden table, continuous wooden tabletop extending to the right",
+      "negative_prompt": "",
+      "steps": 50,
+      "strength": 1,
+      "guidance": 7.5,
+      "seed": 42,
+      "mask_source": "Upload",
+      "soft_mask": false,
+      "feather_radius": 0,
+      "latent_blending": true,
+      "preserve_background": true,
+      "left": 0,
+      "right": 128,
+      "top": 0,
+      "bottom": 0,
+      "overlap": 0,
+      "fill": "edge"
+    },
+    "selection": {
+      "strength": 1.0,
+      "reverse_steps": 50,
+      "start_timestep": 981,
+      "alpha_cumprod": 0.005775495897978544
+    },
+    "sampling_timesteps": [
+      981,
+      961,
+      941,
+      921,
+      901,
+      881,
+      861,
+      841,
+      821,
+      801,
+      781,
+      761,
+      741,
+      721,
+      701,
+      681,
+      661,
+      641,
+      621,
+      601,
+      581,
+      561,
+      541,
+      521,
+      501,
+      481,
+      461,
+      441,
+      421,
+      401,
+      381,
+      361,
+      341,
+      321,
+      301,
+      281,
+      261,
+      241,
+      221,
+      201,
+      181,
+      161,
+      141,
+      121,
+      101,
+      81,
+      61,
+      41,
+      21,
+      1,
+      -1
+    ],
+    "noise": {
+      "seed": 42,
+      "generator_device": "cpu",
+      "dtype": "float32",
+      "shape": [
+        1,
+        4,
+        50,
+        91
+      ],
+      "sha256": "5010caf18efcca8f7c82b1866e324522a2fdb05a0ef74fa2d5d1d16d802e270a",
+      "known_region_policy": "same epsilon, q(z_s|z0) at UPDATED timestep s; CLEAN is exact z0"
+    },
+    "metrics": {
+      "vae": {
+        "psnr_db": 26.260733405504155,
+        "ssim": 0.763004720211029
+      },
+      "raw": {
+        "psnr_db": 22.37916322832531,
+        "ssim": 0.6619955897331238
+      },
+      "edited": {
+        "psnr_db": 24.475757331953417,
+        "ssim": 0.8774781227111816
+      }
+    },
+    "background_metrics": {
+      "raw": {
+        "background_weight_pixels": 240000.0,
+        "background_mae": 0.03076214851965455,
+        "background_psnr_db": 25.708267235801344,
+        "zero_mask_pixels": 240000,
+        "zero_mask_mae": 0.03076214851965455
+      },
+      "final": {
+        "background_weight_pixels": 240000.0,
+        "background_mae": 0.0,
+        "background_psnr_db": null,
+        "zero_mask_pixels": 240000,
+        "zero_mask_mae": 0.0
+      },
+      "requested_raw": {
+        "background_weight_pixels": 240000.0,
+        "background_mae": 0.03076214851965455,
+        "background_psnr_db": 25.708267235801344,
+        "zero_mask_pixels": 240000,
+        "zero_mask_mae": 0.03076214851965455
+      },
+      "requested_final": {
+        "background_weight_pixels": 240000.0,
+        "background_mae": 0.0,
+        "background_psnr_db": null,
+        "zero_mask_pixels": 240000,
+        "zero_mask_mae": 0.0
+      }
+    },
+    "retained_source_metrics": {
+      "raw": {
+        "psnr_db": 25.708267235801344,
+        "ssim": 0.7400877475738525
+      },
+      "final": {
+        "psnr_db": null,
+        "ssim": 1.0
+      }
+    },
+    "metric_note": "Scores measure preservation, not semantic success. For outpainting, full-canvas scores compare generated borders to a synthetic initialization, not ground truth. Judge new content and seams visually.",
+    "metric_settings": {
+      "data_range": 1,
+      "color": "RGB",
+      "ssim_window": 7,
+      "ssim_gaussian_weights": false,
+      "ssim_sample_covariance": true,
+      "background_denominator": "3*sum(1-mask)",
+      "null_psnr": "positive region weight or defined whole image: exact match; empty region: undefined"
+    },
+    "compute_seconds": 5.315811099950224,
+    "runtime": {
+      "device": "cuda",
+      "unet_dtype": "torch.float16",
+      "vae_dtype": "torch.float32",
+      "peak_cuda_allocated_bytes": 3468466688
+    },
+    "file_sha256": {
+      "canvas.png": "cc91f205c7314470bc93318fe82ece9dd3641500cf65f09d37610b6cf377ff7f",
+      "comparison.png": "ef40ebc95ba182327b4877091bdd33324868f0a7130cb3b669c3ae5c30e6b45f",
+      "edited.png": "044c322e8b43306815894497f20f22794cb5582bd11731bf5c93f8d0f8a2a477",
+      "effective_mask.png": "e0e8f69ee3be860c0f1f803a5307aa00774a5bc74ce11ea6f2ad87b51f526e56",
+      "masks.pt": "9108866b3babbb198597ddd43517f5a4cb64d251bdbf7eda1bbe4bfdad3011c9",
+      "metrics.csv": "417c20d16eb390a1133c1fd998290b82ab8ded63def19a5084d537075f9715c4",
+      "noise.pt": "082ebd1579717f719fee76cb88c98d3d024cd1e177779931794562656595ad60",
+      "original.png": "bc7c679e93a04b35aef5c5d644f0293d6aac8df7ccbba06f1d5bdddc0285050b",
+      "raw.png": "02078d0bf153101620e3c25b61249f2ab7016f6e276cd7a351aad46d7e66ddd7",
+      "requested_mask.png": "ff65dda4399bf5954c4e5ebaf865aacd90015771be3ce0f8a08b961ee01cce93",
+      "vae.png": "cfe1099355683d114d281e513c3066738cef8ed359562a4ba388d420a3a594d2"
+    }
+  }
+]

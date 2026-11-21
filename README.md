@@ -533,3 +533,29 @@ image and PNG/ZIP downloads. It uses our custom DDIM sampler and cached componen
 without an original image, mask or inversion. Restart the demo process to load
 the new layout. See [usage, API and verification limits](docs/txt2img-demo.md)
 and [tab behavior and browser validation](docs/demo-tabs.md).
+
+## Forward-noising Img2Img, inpainting and outpainting
+
+The user-directed traditional route is implemented separately from DDIM inversion.
+The demo adds **Img2Img (noise)**, **Inpainting (noise)** and
+**Outpainting (noise)** tabs, sharing the offline model cache and queue.
+No built-in editing pipeline or new checkpoint is used. All three use our manual
+CFG and eta=0 sampler after explicit seeded forward noising of VAE posterior-mode
+latents. See [the equations, usage and validation](docs/forward-noising.md).
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_forward_edit.py img2img --image assets/examples/coffee.png --prompt "a pencil drawing of a cup of coffee" --strength 0.85
+.\.venv\Scripts\python.exe scripts/run_forward_edit.py inpaint --image assets/examples/coffee.png --mask assets/examples/coffee_mask.png --prompt "a pencil drawing of a cup of coffee" --strength 0.85
+.\.venv\Scripts\python.exe scripts/run_forward_edit.py outpaint --image assets/examples/coffee.png --prompt "a photo of a cup of coffee on a wooden table, wider view" --right 128 --strength 1
+```
+
+White/painted regions edit; zero-mask regions preserve. Outpainting adds explicit
+left/right/top/bottom margins, with edge or neutral initialization and optional
+editable source-edge overlap. Default overlap=0 and feather=0 plus pixel compositing
+preserve the entire source rectangle exactly. Feathering or overlap deliberately
+permits border changes. Strength uses **floor(strength × steps)** here, independently
+of inversion editing's existing ceil rule. At zero selected steps the VAE is still
+decoded and chosen compositing still applies. This is four-channel base-model
+masked sampling, not a specialized nine-channel inpainting checkpoint. Seams and
+geometry/semantic failures remain possible; [measured smoke examples](docs/results/forward-noising/README.md)
+are not holdout acceptance results.

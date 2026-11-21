@@ -9,7 +9,7 @@ from numbers import Real
 from pathlib import Path
 import threading
 import time
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from uuid import uuid4
 import zipfile
 
@@ -29,6 +29,9 @@ from diffusion_editor.pipelines.generation import TextToImagePipeline
 from diffusion_editor.utils.environment import inspect_environment
 from diffusion_editor.utils.image_utils import image_to_tensor, tensor_to_images
 from diffusion_editor.utils.visualization import save_image_grid
+
+if TYPE_CHECKING:
+    from diffusion_editor.demo.forward_service import ForwardRequest, ForwardDemoResult
 
 
 @dataclass(frozen=True)
@@ -227,6 +230,12 @@ class DemoService:
             status = f"Text to image complete. Compute: {elapsed:.2f}s; model loading: {load_seconds:.2f}s. Output: {request.width} x {request.height}."
             notify(1.0, "Complete")
             return GenerationDemoResult(image, status, report, str(directory / "generated.png"), str(archive))
+
+    def forward_edit(self, image: Image.Image | None, mask: Image.Image | None, drawing: dict | None,
+                     request: "ForwardRequest", progress: Callable[[float, str], None] | None = None) -> "ForwardDemoResult":
+        """Forward-noising route sharing the same serialized backend cache."""
+        from diffusion_editor.demo.forward_service import run_forward
+        return run_forward(self, image, mask, drawing, request, progress)
 
     def run(self, image: Image.Image | None, uploaded_mask: Image.Image | None,
             drawing: dict[str, Any] | None, request: DemoRequest,

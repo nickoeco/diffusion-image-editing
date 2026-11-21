@@ -15,7 +15,8 @@ def test_persistent_independent_tabs(generation_service):
     app = create_app(service=generation_service)
     components = app.config["components"]
     tabs = [c for c in components if c["type"] == "tabitem"]
-    assert [c["props"]["label"] for c in tabs] == ["Text to image", "Local edit", "Global edit", "Reconstruction"]
+    assert [c["props"]["label"] for c in tabs] == ["Text to image", "Local edit", "Global edit", "Reconstruction",
+                                                   "Img2Img (noise)", "Inpainting (noise)", "Outpainting (noise)"]
     assert all(c["props"]["render_children"] for c in tabs)
     navigation = next(c for c in components if c["type"] == "tabs")
     assert navigation["props"]["selected"] == "local"

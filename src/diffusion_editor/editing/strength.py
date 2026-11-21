@@ -33,3 +33,16 @@ def select_edit_start(schedule: DDIMSchedule, strength: float) -> StrengthSelect
     count = math.ceil(Decimal(str(float(strength))) * len(schedule.sampling_timesteps))
     timestep = schedule.inversion_timesteps[count]
     return StrengthSelection(float(strength), count, timestep, schedule.alpha(timestep).item())
+
+
+def select_forward_start(schedule: DDIMSchedule, strength: float) -> StrengthSelection:
+    """Img2Img k=floor(strength*N); k=0 is clean, k=N is highest selected level.
+
+    Deliberately separate from inversion editing's ceil policy. A positive
+    strength below 1/N performs no reverse updates. No inversion is executed.
+    """
+    if isinstance(strength, bool) or not isinstance(strength, Real) or not math.isfinite(strength) or not 0 <= strength <= 1:
+        raise ValueError("strength must be finite and in [0,1]")
+    count = int(Decimal(str(float(strength))) * len(schedule.sampling_timesteps))
+    timestep = schedule.inversion_timesteps[count]
+    return StrengthSelection(float(strength), count, timestep, schedule.alpha(timestep).item())

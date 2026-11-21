@@ -1,7 +1,8 @@
 # Demo operation tabs
 
-The main demo has four persistent tabs, replacing the visible operation radio
-and separate txt2img accordion:
+The main demo has seven persistent tabs. The original four replaced the visible
+operation radio and separate txt2img accordion; three forward-noising tabs were
+subsequently added at the user's request:
 
 | Tab | Inputs and behavior | Run API |
 | --- | --- | --- |
@@ -9,6 +10,9 @@ and separate txt2img accordion:
 | Local edit | Its own original, upload/draw mask, prompts and editing controls | `/run` |
 | Global edit | Its own original/prompts and editing controls; no drawing canvas | `/run_global` |
 | Reconstruction | Its own original/source prompt; VAE/DDIM output choices | `/run_reconstruction` |
+| Img2Img (noise) | Image, target prompt, floor-based strength and random-noise seed; no inversion | `/forward_img2img` |
+| Inpainting (noise) | Image, upload/draw mask, target prompt and independent latent/pixel blending | `/forward_inpaint` |
+| Outpainting (noise) | Image, margins, fill, overlap and target prompt; generates an extended canvas | `/forward_outpaint` |
 
 Switching tabs retains each tab's uploaded image, prompts, parameters, selected
 outputs, results and download links. Uploading/clearing an image, changing automatic
@@ -21,18 +25,20 @@ available. Global/reconstruction upload, fitting and callback APIs use matching
 
 The editor form is built by one shared UI helper, with independent Gradio state
 and namespaced element IDs per tab. CSS for one operation cannot hide another
-tab's controls. There is exactly one paint canvas, in Local edit. It is selected
+tab's controls. There are two paint canvases, in Local edit and Inpainting (noise).
+Local edit is selected
 initially so the canvas can initialize at a visible size; `render_children=True`
 keeps all tab children mounted across switching. Changing this initialization
 policy requires another paint/switch browser check.
 
 All tabs share one `DemoService`, offline model cache, inference lock and queue
 concurrency group. Tab selection loads no weights and triggers no inference.
-There is no change to generation, editing, calibration or reconstruction math.
+The original generation, inversion editing, calibration and reconstruction math
+is unchanged. New noising mathematics lives in its own route.
 No model dependency or checkpoint was added. Existing running demo processes must
 be restarted to load the revised interface; they were not restarted automatically.
 
-## Executed validation (2026-11-18)
+## Original four-tab validation (2026-11-18, historical)
 
 `pytest tests/test_generation.py tests/test_demo.py tests/test_demo_tabs.py --run-demo -q`
 completed with **43 passed, 2 skipped, 15 warnings** in 39.06 s. Warnings are the
@@ -56,3 +62,13 @@ validation; no production/research server was restarted.
 The screenshot shows the Text to image controls and synthetic CPU test output,
 not a real-model generation-quality example. This is an interface/lifecycle
 smoke, not an acceptance rating, reconstruction/calibration gain or GPU benchmark.
+
+## Forward-noising extension validation (2026-11-18)
+
+The complete suite passes 337 tests with all HTTP/CUDA/model flags enabled.
+New HTTP checks exercise all three APIs, uploaded/painted masks, downloads and
+the shared cache. A real-model browser session drew an inpainting stroke, switched
+to outpainting and back with its drawing retained, completed painted-mask editing,
+then generated an expanded 728×400 canvas with rendered results and download links.
+See [forward-noising.md](forward-noising.md). New tabs intentionally validate exact
+input/canvas sizes rather than silently applying the legacy image-fitting policy.

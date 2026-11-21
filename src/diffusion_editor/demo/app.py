@@ -260,6 +260,11 @@ def create_app(config: ProjectConfig | None = None, output_dir: str | Path = "ou
                 build_editor("Global edit", "_global")
             with gr.Tab("Reconstruction", id="reconstruction", render_children=True):
                 build_editor("Reconstruct source", "_reconstruction")
+            from diffusion_editor.demo.forward_app import build_forward_tab
+            for label, forward_mode in (("Img2Img (noise)", "img2img"), ("Inpainting (noise)", "inpaint"),
+                                        ("Outpainting (noise)", "outpaint")):
+                with gr.Tab(label, id="forward-" + forward_mode, render_children=True):
+                    build_forward_tab(gr, service, forward_mode, coffee, coffee_mask)
     return demo.queue(default_concurrency_limit=1, max_size=4)
 
 

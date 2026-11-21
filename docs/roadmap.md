@@ -137,3 +137,18 @@ simple without losing prior work. CPU/HTTP checks passed 43 tests; an in-app
 browser confirmed all modes, result retention and paint/switch lifecycle behavior.
 Real-model/GPU generation remains unexecuted for these UI changes. See
 `demo-tabs.md`; no calibration or acceptance gate was advanced.
+
+## User-directed forward-noising functionality (2026-11-18)
+
+The user subsequently requested traditional forward-noising Img2Img, inpainting
+and outpainting. This becomes the active implementation deliverable; prior DDIM
+calibration and attention-gate plans remain preserved and deferred. No source
+threshold is relaxed, no attention controller is introduced, and no existing
+instruction/RGB-reference branch is expanded.
+
+The added route uses our own forward equation and existing reverse DDIM/CFG,
+updated-level noised-source mask blending, canvas margins/initialization/overlap,
+independent pixel compositing, three persistent UI tabs, a CLI and reproducible
+downloads. Historical-input smokes demonstrate execution and preserved zero-mask
+pixels, with explicit geometry/seam failures. The semantic and holdout acceptance
+gates remain open. See `forward-noising.md` for current implementation evidence.

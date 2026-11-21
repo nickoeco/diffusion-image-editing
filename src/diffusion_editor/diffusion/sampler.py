@@ -39,8 +39,9 @@ class DDIMSampler:
                after_step: Callable[[Tensor, int], Tensor] | None = None) -> SamplingResult:
         """Start at a selected level (default highest); return a clean FP32 latent.
 
-        The caller must supply the latent at start_timestep from a matching
-        inversion trajectory. CLEAN is a no-update path. No new noise is added.
+        The caller supplies a latent at the explicit start_timestep, from a
+        matching inversion state or forward noising at that level. CLEAN is a
+        no-update path. The reverse sampler adds no new noise.
         An optional callback receives the UPDATED latent and its destination ID,
         including CLEAN. Its FP32 output is validated before snapshot storage.
         """

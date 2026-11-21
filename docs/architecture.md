@@ -242,7 +242,29 @@ metrics or research/acceptance claims are synthesized. See `txt2img-demo.md`.
 
 The four-tab UI builds independent editor forms through one helper, sharing the
 same service/cache/queue. Each form has separate upload state and output controls,
-with scoped element IDs/CSS. Only Local edit creates an ImageEditor; Local edit
+with scoped element IDs/CSS. In the original four-tab layout only Local edit
+creates an ImageEditor; Local edit
 is initially selected and all tab children remain mounted. Tab navigation has no
 server callbacks that clear values or trigger inference. See `demo-tabs.md` for
 the executed browser paint/switch and API regression checks.
+
+## Forward-noising route (user-directed addition)
+
+`diffusion/noising.py` owns the FP32 forward marginal equation. The separate
+`editing/strength.py::select_forward_start` maps strength through floor to an
+actual selected level, without changing inversion editing's existing ceil policy.
+`editing/canvas.py` places source pixels into an explicitly expanded canvas and
+defines new-area/overlap edit weights; it performs no model execution.
+
+`pipelines/forward_editing.py::ForwardEditingPipeline` composes VAE posterior mode,
+seeded CPU noise, target conditioning and our existing eta=0 sampler. Inpainting
+uses a stateless after-update callback that computes known-region forward marginals
+on demand at the updated ID with one fixed epsilon. It stores no inversion
+trajectory, performs no null-text calibration and never substitutes source pivots.
+Outpainting uses the same masked path on a new canvas. Optional pixel compositing
+remains outside sampling and raw decoded output is retained.
+
+`demo/forward_service.py` provides validated requests and reproducible artifacts,
+reusing `DemoService`'s single backend and lock. CLI and Gradio call the same
+service. No dependency or model download is added. Existing inference and review
+interfaces remain intact.

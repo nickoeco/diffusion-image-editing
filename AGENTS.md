@@ -16,13 +16,18 @@ existing work. Explain major architectural or dependency changes before making t
 
 ## Scope and implementation constraints
 
-- Current research priority (2026-11-18): pursue the custom DDIM editing route and
-  follow `docs/ddim-research-plan.md`. Keep instruction-editing models, explicit
+- User-directed implementation priority (2026-11-18): add traditional forward-
+  noising Img2Img, masked inpainting and canvas outpainting using our custom DDIM
+  sampler. Follow `docs/forward-noising.md`. Keep this route separate from source
+  inversion/calibration and preserve all previous numerical and semantic evidence.
+- The preceding custom-inversion research direction is documented in
+  `docs/ddim-research-plan.md`. Keep instruction-editing models, explicit
   RGB color constraints and their compositing studies as labelled reference
   evidence. Do not expand those auxiliary branches as the active deliverable
   unless the user redirects the project. Preserve their existing artifacts.
 - The calibration optimization/precision diagnostic is recorded in
-  `docs/calibration-diagnostic.md`. The next eligible deliverable is a separately
+  `docs/calibration-diagnostic.md`. If that research resumes, its next eligible
+  deliverable is a separately
   registered deterministic full-trajectory cap20/cap80 calibration comparison,
   using actual propagated states. Keep source reconstruction thresholds;
   attention editing remains conditional on its declared gate.
@@ -70,6 +75,12 @@ existing work. Explain major architectural or dependency changes before making t
   resolution. Blending after a reverse update must use source state at the updated
   timestep, including the clean terminal state.
 - Strength selects a valid stored level; document strength 0/1 and reverse step count.
+- Forward-noising editing instead selects an actual grid level with
+  k=floor(strength*N), including a clean no-update path for k=0. Independently
+  implement q(z_t|z0), use a local seeded noise generator, and do not call inversion.
+  Known-region blends use q(z_s|z0) with the same epsilon at the UPDATED level s,
+  including exact clean z0. Outpainting records source-box coordinates, margins,
+  canvas fill and editable overlap; never silently resize the source rectangle.
 - Latent blending and optional final pixel compositing are independent settings;
   VAE spatial coupling means latent blending alone cannot preserve exact pixels.
 

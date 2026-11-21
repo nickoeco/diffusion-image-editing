@@ -397,3 +397,20 @@ This later check completes the tab UI/lifecycle smoke; it does not turn the earl
 synthetic outputs into pretrained or acceptance evidence. The temporary server
 was stopped and no research run or production server was changed. See
 `demo-tabs.md` for the screenshot, API mapping and precise test scope.
+
+## Forward-noising implementation smoke (2026-11-18)
+
+The user requested traditional Img2Img/inpainting/outpainting. Three cached-model
+smokes reuse the exposed coffee input (600×400), seed 42, 50 requested steps and
+guidance 7.5. Global and masked style targets use strength 0.85, selecting actual
+level 821 and 42 reverse updates; right-side outpainting uses strength 1, level 981
+and 50 updates, with 128 new pixels (728×400). No inversion/calibration runs.
+
+The inpaint requested-background MAE is 0.04063265 before pixel compositing and 0
+afterward across 171,241 pixels. Outpaint source-rectangle MAE is 0.03076215 before
+compositing and 0 afterward across 240,000 pixels, with overlap 0 and feather 0.
+These exact zeros are compositing results, not acceptance passes. Visible cropped
+cup geometry and the outpainting texture seam are retained in the examples.
+No new twelve-case or holdout study, human rating, or broad quality claim is made.
+See [forward-noising.md](forward-noising.md) and the
+[portable smoke examples](results/forward-noising/README.md).

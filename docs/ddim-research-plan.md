@@ -179,3 +179,13 @@ material.
 - The route decision itself was documentation-only; its subsequent authorized
   stage A executed the isolated GPU diagnostic. Neither changes production
   defaults, ratings, reference weights, existing services or Git history.
+
+## Subsequent user-directed route (November 18, 2026)
+
+The user explicitly redirected the next implementation to traditional forward-
+noising Img2Img, inpainting and outpainting. See [forward-noising.md](forward-noising.md).
+The calibration comparison described here is deferred, not executed or relaxed.
+Its source reconstruction thresholds and the conditional attention-editing gate
+remain unchanged. Existing diagnostic, failure and reference artifacts are
+preserved. The new route still uses our custom DDIM sampler but initializes from
+forward noising rather than inversion or calibrated null inputs.

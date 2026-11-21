@@ -533,3 +533,38 @@ APIs have distinct suffixes. Scoped CSS avoids duplicate IDs or cross-tab hiding
 `render_children=True` retains initialized controls across switches, with Local
 edit initially selected. Browser CPU smoke confirmed prompt/result retention and
 continued drawing/execution after switching. Numerical paths are unchanged.
+
+## Forward-noising Img2Img and masked canvas editing
+
+Let z0 be the scaled posterior-mode encoding of the input/canvas and epsilon one
+seeded FP32 Gaussian tensor. `forward_noise` implements
+`z_t=sqrt(alpha_bar_t)*z0+sqrt(1-alpha_bar_t)*epsilon`, including clean alpha=1.
+`select_forward_start` uses k=floor(strength*N) and the kth ascending grid level;
+k=0 means clean, k=N means highest selected training ID. Strength 1 still includes
+the actual alpha coefficient, rather than replacing z0 by pure noise. No scheduler
+add_noise/step or built-in Img2Img/Inpainting pipeline executes this route.
+
+At every reverse update t->s, masked sampling blends
+`M_latent*z_edit_s+(1-M_latent)*q(z_s|z0)` with the SAME epsilon. This defines coupled
+forward marginals, not independently sampled Markov paths. The clean update uses
+z0 exactly. Binary/soft/feathered masks reuse existing alignment and resizing rules.
+The known reference is the encoding of the full canvas, including its chosen
+initialization; VAE coupling can still affect decoded known pixels. Independent
+pixel compositing gives exact literal zero-mask pixels and does not prove semantic
+success or seam quality. Zero steps skips all U-Net updates but retains VAE loss
+and selected compositing.
+
+Outpainting records (left,top,right,bottom) source-box coordinates and
+(left,right,top,bottom) margins. Edge fill replicates source boundary pixels; neutral
+fill is RGB 0.5. Exterior mask weights are one. Overlap is a linear editable band
+inside only the source edges with positive expansion, strictly less than half the
+smaller source dimension. Optional feathering further changes effective support.
+The core API never resizes/crops. The demo/CLI require SD 1.5-compatible final
+dimensions divisible by 8 and at most 1024 pixels per side.
+
+Reports retain initial noise, masks, actual IDs/alpha, prompt/settings, seed,
+software/device/precision, raw/final images, timings and JSON/CSV metrics.
+Outpainted borders have no ground truth; initialized-canvas preservation scores
+are explicitly not generated-content quality scores. Retained-source and fixed
+requested-mask metrics are separate from effective-mask metrics. See
+`forward-noising.md` for executable examples and measured validation.
