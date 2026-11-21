@@ -1,0 +1,98 @@
+{
+  "backend": "FLUX.2 Klein 4B protected INT8 reference",
+  "run_id": "09811f8bb690475295f993921d595777",
+  "request": {
+    "operation": "Edit image",
+    "prompt": "Change the ceramic cup to blue. Keep the coffee and wooden table.",
+    "width": 512,
+    "height": 512,
+    "seed": 42,
+    "fit_reference": true
+  },
+  "settings_digest": "ba96ef11e29ce2e1fcd917219709ebc32497027472d92c5d9e9aee4e0836b73c",
+  "worker": {
+    "model_id": "black-forest-labs/FLUX.2-klein-4B",
+    "revision": "e7b7dc27f91deacad38e78976d1f2b499d76a294",
+    "source_dir": "models/FLUX.2-klein-4B",
+    "reuse_dir": "models/FLUX.2-klein-base-4B",
+    "quantized_dir": "models/FLUX.2-klein-4B-int8-protected",
+    "transformer_skip_modules": [
+      "time_guidance_embed",
+      "double_stream_modulation_img",
+      "double_stream_modulation_txt",
+      "single_stream_modulation",
+      "x_embedder",
+      "context_embedder",
+      "norm_out",
+      "proj_out"
+    ],
+    "is_distilled": true,
+    "quantization": "bitsandbytes-int8",
+    "quantized_components": [
+      "transformer",
+      "text_encoder"
+    ],
+    "compute_dtype": "bfloat16",
+    "cpu_offload": true,
+    "num_inference_steps": 4,
+    "guidance_scale": 1.0,
+    "seed": 42,
+    "height": 512,
+    "width": 512,
+    "prompt": "Change the ceramic cup to blue. Keep the coffee and wooden table.",
+    "output_dir": "outputs/flux-klein-int8",
+    "label": "built-in reference; not the custom DDIM editor",
+    "run_directory": "C:\\Users\\LX322\\Documents\\ChatGPT\\Diffusion Model\\outputs\\flux-ui-verification\\flux\\09811f8bb690475295f993921d595777\\run",
+    "input_image": "C:\\Users\\LX322\\Documents\\ChatGPT\\Diffusion Model\\outputs\\flux-ui-verification\\flux\\09811f8bb690475295f993921d595777\\input.png",
+    "saved_input_sha256": "f27aa41ca4222f3611e85ee3da19e7cd9235a7b25fc14222a8a0a1f80e6ac465",
+    "int8_linear_layers": {
+      "transformer": 100,
+      "text_encoder": 252
+    },
+    "gpu": "NVIDIA GeForce RTX 4080 Laptop GPU",
+    "text_encoder_lifecycle": "INT8 prompt encoding, then released before Transformer loading",
+    "inference_seconds": 4.470454500056803,
+    "total_seconds": 12.924582000006922,
+    "peak_allocated_GiB": 7.741293430328369,
+    "peak_reserved_GiB": 8.423828125,
+    "output_sha256": "7efd82c8d224fdd4b04f53db260964ef5bb769289ed42d3cf1ec06ac8096a90e",
+    "software": {
+      "torch": "2.11.0+cu128",
+      "diffusers": "0.40.0.dev0",
+      "transformers": "5.15.0",
+      "bitsandbytes": "0.50.1",
+      "accelerate": "1.14.0"
+    }
+  },
+  "wall_seconds": 21.666798699996434,
+  "output_sha256": "7efd82c8d224fdd4b04f53db260964ef5bb769289ed42d3cf1ec06ac8096a90e",
+  "input_sha256": "f27aa41ca4222f3611e85ee3da19e7cd9235a7b25fc14222a8a0a1f80e6ac465",
+  "reference_preprocessing": {
+    "source_size": [
+      600,
+      400
+    ],
+    "content_size": [
+      600,
+      400
+    ],
+    "canvas_size": [
+      608,
+      400
+    ],
+    "alignment": 16,
+    "max_side": 1024,
+    "enabled": true,
+    "padding_right": 8,
+    "padding_bottom": 0,
+    "image_resize_filter": "none",
+    "image_padding": "replicate_edge",
+    "output_space": "fitted_model_canvas"
+  },
+  "original_input_sha256": "bc7c679e93a04b35aef5c5d644f0293d6aac8df7ccbba06f1d5bdddc0285050b",
+  "capabilities": [
+    "text-to-image",
+    "instruction image editing"
+  ],
+  "note": "Reference backend; does not implement custom DDIM or masked inpainting/outpainting."
+}

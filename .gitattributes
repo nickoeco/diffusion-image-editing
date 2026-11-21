@@ -1,0 +1,2 @@
+# Preserve archived experiment evidence bytes and their recorded hashes.
+docs/results/flux-klein-int8/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

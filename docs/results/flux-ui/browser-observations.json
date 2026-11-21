@@ -1,0 +1,273 @@
+{
+  "url": "http://127.0.0.1:7865",
+  "probe": false,
+  "progress_stages": [
+    "Starting the isolated FLUX runtime",
+    "Loading the INT8 text encoder",
+    "Prompt encoded",
+    "Loading the INT8 Transformer",
+    "Sampling step"
+  ],
+  "errors": [],
+  "sd_before_flux": {
+    "model_first_load": true,
+    "config": {
+      "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+      "revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+      "device": "auto",
+      "precision": "auto",
+      "local_files_only": true,
+      "cache_dir": ".cache/huggingface",
+      "seed": 42,
+      "log_level": "INFO"
+    },
+    "runtime": {
+      "device": "cuda",
+      "unet_dtype": "torch.float16",
+      "vae_dtype": "torch.float32",
+      "peak_cuda_allocated_bytes": 2403855872
+    }
+  },
+  "visible_tabs": [
+    "Generate ",
+    "Edit image ",
+    "Extend canvas ",
+    "Diagnostics ",
+    "FLUX "
+  ],
+  "visible_paint_canvases": 2,
+  "Generate status": "FLUX generate complete \u00b7 4 steps \u00b7 seed 42 \u00b7 26.7s.",
+  "Generate render styles": [
+    {
+      "tag": "IMG",
+      "classes": "svelte-1pijsyv",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "image-frame svelte-zxsjoa",
+      "opacity": "1"
+    },
+    {
+      "tag": "BUTTON",
+      "classes": "svelte-zxsjoa",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "image-container svelte-zxsjoa",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "block svelte-1svsvh2 auto-margin",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "column workspace-stage svelte-bnzux8",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "row workspace-row svelte-1xp0cw7 unequal-height",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "column  svelte-bnzux8",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "tabitem  svelte-5cspr0",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "tabs  svelte-i00v67",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "column  svelte-bnzux8",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "contain svelte-czcr5b",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "wrap svelte-czcr5b",
+      "opacity": "1"
+    },
+    {
+      "tag": "MAIN",
+      "classes": "fillable svelte-18evea3 app",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "gradio-container gradio-container-5-49-1 svelte-18evea3",
+      "opacity": "1"
+    },
+    {
+      "tag": "GRADIO-APP",
+      "classes": "",
+      "opacity": "1"
+    },
+    {
+      "tag": "BODY",
+      "classes": "",
+      "opacity": "1"
+    },
+    {
+      "tag": "HTML",
+      "classes": "",
+      "opacity": "1"
+    }
+  ],
+  "generation_image_size": [
+    512,
+    512
+  ],
+  "reference_fitting": "0.1/0.1s\n\nAutomatic fitting: upload 600 x 400 -> content 600 x 400 -> canvas/output 608 x 400. Padding right/bottom: 8/0 px. No crop or output upscaling.",
+  "Edit image status": "FLUX edit image complete \u00b7 4 steps \u00b7 seed 42 \u00b7 21.7s.",
+  "Edit image render styles": [
+    {
+      "tag": "IMG",
+      "classes": "svelte-1pijsyv",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "image-frame svelte-zxsjoa",
+      "opacity": "1"
+    },
+    {
+      "tag": "BUTTON",
+      "classes": "svelte-zxsjoa",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "image-container svelte-zxsjoa",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "block svelte-1svsvh2 auto-margin",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "column workspace-stage svelte-bnzux8",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "row workspace-row svelte-1xp0cw7 unequal-height",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "column  svelte-bnzux8",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "tabitem  svelte-5cspr0",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "tabs  svelte-i00v67",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "column  svelte-bnzux8",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "contain svelte-czcr5b",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "wrap svelte-czcr5b",
+      "opacity": "1"
+    },
+    {
+      "tag": "MAIN",
+      "classes": "fillable svelte-18evea3 app",
+      "opacity": "1"
+    },
+    {
+      "tag": "DIV",
+      "classes": "gradio-container gradio-container-5-49-1 svelte-18evea3",
+      "opacity": "1"
+    },
+    {
+      "tag": "GRADIO-APP",
+      "classes": "",
+      "opacity": "1"
+    },
+    {
+      "tag": "BODY",
+      "classes": "",
+      "opacity": "1"
+    },
+    {
+      "tag": "HTML",
+      "classes": "",
+      "opacity": "1"
+    }
+  ],
+  "download_links": [
+    {
+      "text": "",
+      "href": "http://127.0.0.1:7865/gradio_api/file=C:\\Users\\LX322\\AppData\\Local\\Temp\\gradio\\4482dbb2777fa159d62dc63018b39a5e23df0386dfc29c2711bcf0893ded5bb9\\image.png"
+    },
+    {
+      "text": "",
+      "href": "http://127.0.0.1:7865/gradio_api/file=C:\\Users\\LX322\\AppData\\Local\\Temp\\gradio\\cc17204554ec74df18d4b2f7d7e38ddace43c174622301d6909cd2fdc392f1c9\\image.png"
+    },
+    {
+      "text": "443.0\u00a0KB\u00a0\u21e3",
+      "href": "http://127.0.0.1:7865/gradio_api/file=C:\\Users\\LX322\\AppData\\Local\\Temp\\gradio\\cc17204554ec74df18d4b2f7d7e38ddace43c174622301d6909cd2fdc392f1c9\\output.png"
+    },
+    {
+      "text": "3.4\u00a0KB\u00a0\u21e3",
+      "href": "http://127.0.0.1:7865/gradio_api/file=C:\\Users\\LX322\\AppData\\Local\\Temp\\gradio\\b06e7b5df958e5dd617a4474287f328bc2d7b4e1024841c78092e04dc642b905\\ui_report.json"
+    },
+    {
+      "text": "1.8\u00a0MB\u00a0\u21e3",
+      "href": "http://127.0.0.1:7865/gradio_api/file=C:\\Users\\LX322\\AppData\\Local\\Temp\\gradio\\c18eb83c0ba2bf1f8b60899d28ff1ccd3b4c31cf6071aece7b626ebc20fe22e8\\run.zip"
+    }
+  ],
+  "failure_retained_previous_result": true,
+  "tab_switch_retained_flux_result": true,
+  "sd_after_flux": {
+    "model_first_load": true,
+    "config": {
+      "model_id": "stable-diffusion-v1-5/stable-diffusion-v1-5",
+      "revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+      "device": "auto",
+      "precision": "auto",
+      "local_files_only": true,
+      "cache_dir": ".cache/huggingface",
+      "seed": 42,
+      "log_level": "INFO"
+    },
+    "runtime": {
+      "device": "cuda",
+      "unet_dtype": "torch.float16",
+      "vae_dtype": "torch.float32",
+      "peak_cuda_allocated_bytes": 2404503040
+    }
+  }
+}

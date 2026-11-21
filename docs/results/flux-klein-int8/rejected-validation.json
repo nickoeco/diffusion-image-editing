@@ -1,0 +1,7 @@
+{
+  "status": "rejected",
+  "reason": "All-linear INT8 Transformer produced abnormal texture instead of the requested mug",
+  "failed_run": "20261119-073056",
+  "active_export": "models\\FLUX.2-klein-4B-int8-protected",
+  "active_config": "configs/flux-klein-4b-int8.json"
+}

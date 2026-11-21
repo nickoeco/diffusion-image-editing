@@ -6,6 +6,7 @@ __pycache__/
 build/
 dist/
 .cache/
+/models/
 .env
 outputs/*
 !outputs/reconstruction/

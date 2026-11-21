@@ -434,3 +434,32 @@ Browser validation uses a separate synthetic CPU service on port 7864, never a
 real acceptance table. Its artifacts/screenshots are UI/lifecycle evidence only;
 see `workspace-ui.md`. Prior real-model examples and all unsuccessful semantic
 outcomes remain preserved; no metric or semantic improvement is claimed.
+
+## FLUX Gradio reference verification
+
+The user-directed FLUX page is verified separately from the custom DDIM studies.
+Offline/HTTP checks use synthetic workers; browser runs use the pinned local
+distilled Klein 4B protected INT8 export. The checks cover real generation,
+coffee-image instruction editing, explicit reference preparation, progress,
+PNG/JSON/ZIP downloads, stale-result labels, failed-request retention and paint
+preservation across task navigation. See `flux-gradio.md` and
+`results/flux-ui/browser-observations.json` for evidence and limitations.
+
+The coffee edit is historical regression material, not an unseen holdout case.
+It changes both the cup and saucer and uses a requested square output; it does
+not establish exact background/structure preservation or pass semantic acceptance.
+No previous inversion, calibration, ablation or unsuccessful editing evidence is
+replaced by these UI checks.
+
+## Publication regression verification (2026-11-21)
+
+Before the logical Git publication, the complete offline and opt-in local HTTP
+suite (`python -m pytest -q --run-demo`) passed **363 tests, 24 skipped** in
+63.94 seconds, with 22 existing Gradio/Starlette HTTP-422 deprecation warnings.
+Real-weight/GPU checks were not enabled or rerun. Existing browser/model evidence
+above retains its original scope and execution records.
+
+The local root `models/` cache is excluded from Git. A byte-preserving portable
+[FLUX evidence archive](results/flux-klein-int8/README.md) retains the original
+source/quantization manifests, accepted and rejected smoke outputs, and incomplete
+attempt records. Packaging these files does not constitute a new experiment.

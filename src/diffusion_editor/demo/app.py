@@ -1,4 +1,4 @@
-"""Launch the local Gradio UI backed exclusively by our custom pipelines."""
+"""Launch the custom SD editor and the isolated, labelled FLUX reference page."""
 from __future__ import annotations
 
 import argparse
@@ -20,7 +20,8 @@ def _integer(value: Any, name: str) -> int:
 
 
 def create_app(config: ProjectConfig | None = None, output_dir: str | Path = "outputs/demo",
-               *, service: Any = None) -> Any:
+               *, service: Any = None, flux_service: Any = None,
+               flux_python: str | Path | None = None, flux_config: str | Path | None = None) -> Any:
     import gradio as gr
     from PIL import Image
     from diffusion_editor.demo.inputs import editor_canvas, normalize_image
@@ -29,6 +30,9 @@ def create_app(config: ProjectConfig | None = None, output_dir: str | Path = "ou
     from diffusion_editor.demo.ui_state import CONTROL, DDIM, EDIT, VAE, default_outputs, layout_css, output_choices, validate_outputs
 
     service = service or DemoService(config or ProjectConfig(), output_dir)
+    if flux_service is None:
+        from diffusion_editor.demo.flux_service import FluxDemoService
+        flux_service = FluxDemoService(service, python=flux_python, config_path=flux_config)
     with Image.open(ROOT / "assets/examples/coffee.png") as image:
         coffee = image.convert("RGB")
     with Image.open(ROOT / "assets/examples/coffee_mask.png") as mask:
@@ -216,7 +220,7 @@ def create_app(config: ProjectConfig | None = None, output_dir: str | Path = "ou
     from diffusion_editor.demo.workspace import WORKSPACE_CSS, build_workspace
     with gr.Blocks(title="Diffusion Image Editor", analytics_enabled=False, css=WORKSPACE_CSS,
                    theme=gr.themes.Soft(primary_hue="cyan", neutral_hue="slate")) as demo:
-        build_workspace(gr, service, coffee, coffee_mask)
+        build_workspace(gr, service, coffee, coffee_mask, flux_service=flux_service)
         # Keep the established API adapters and their parameter/output order. They
         # share the same service/lock, but do not appear in task navigation.
         with gr.Tabs(selected="local", elem_id="generation-tabs", visible=False):
@@ -276,11 +280,13 @@ def main() -> None:
     parser.add_argument("--config", default="configs/default.yaml")
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/demo"))
+    parser.add_argument("--flux-python", type=Path, help="Separate Python runtime with FLUX.2 and bitsandbytes support")
+    parser.add_argument("--flux-config", type=Path, default=ROOT / "configs/flux-klein-4b-int8.json")
     args = parser.parse_args()
     from diffusion_editor.utils.logging import configure_logging
     config = load_config(args.config)
     configure_logging(config.log_level)
-    demo = create_app(config, args.output_dir)
+    demo = create_app(config, args.output_dir, flux_python=args.flux_python, flux_config=args.flux_config)
     demo.launch(server_name="127.0.0.1", server_port=args.port, share=False, show_error=True,
                 inbrowser=False, allowed_paths=[str(args.output_dir.resolve())], max_file_size="20mb")
 

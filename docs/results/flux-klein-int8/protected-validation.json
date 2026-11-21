@@ -1,0 +1,8 @@
+{
+  "label": "completed text-to-image compatibility smoke; not semantic acceptance",
+  "run": "20261119-074610",
+  "run_report": "outputs\\flux-klein-int8\\20261119-074610\\run.json",
+  "output_sha256": "825b7ccf109e023d77b0208c0cd898e923d9d88063e474076e8afe77f8d9ae30",
+  "peak_allocated_GiB": 7.406888961791992,
+  "peak_reserved_GiB": 8.15625
+}

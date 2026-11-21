@@ -590,3 +590,25 @@ upload. Backend reports remain intact. Control changes label prior outputs as
 stale; failures preserve successful images/downloads. Only selected diagnostic
 branches execute. Hidden compatibility adapters retain old API signatures and
 result ordering. See `workspace-ui.md` for UI/browser evidence and limitations.
+
+## FLUX reference UI integration
+
+The FLUX page calls `FluxDemoService`, which builds a frozen `FluxRequest` and a
+per-request JSON configuration. It invokes `run_flux_klein_int8_reference.py`
+with an argument list, `--require-export`, `--progress-json` and a unique run
+directory. Prompt text stays in JSON, never a shell command. The UI cannot trigger
+model downloads, checkpoint export or dependency installation.
+
+The bridge validates revision/INT8 markers, the distilled flag and protected-layer
+policy before releasing SD components. A supervised worker has a bounded runtime;
+failure records and logs are retained, while the UI keeps the last successful
+result. Successful output bytes must match the worker's hash and requested size.
+PNG, worker JSON, UI association JSON, request configuration and original/prepared
+reference images are archived. The fixed defaults are four steps and guidance 1.
+
+Reference fitting reuses `ImageFit` with alignment 16. It is explicit, defaults
+off, displays source/content/canvas sizes and never crops. The coffee-example
+button explicitly enables fitting: 600x400 becomes 608x400 with eight replicated
+edge pixels on the right. The input fingerprint binds the oriented RGB original
+and the fitting switch; preparation metadata and the original pixels remain in
+the archive. See `flux-gradio.md` for executed checks.

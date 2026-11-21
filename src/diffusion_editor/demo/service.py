@@ -1,5 +1,6 @@
 """Lazy model reuse, validated demo requests and reproducible local run artifacts."""
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 import csv
 import hashlib
@@ -178,6 +179,19 @@ class DemoService:
             backend = self._loader(self.config)
             editor, reconstructor = EditingPipeline(backend), ReconstructionPipeline(backend)
             self._backend, self._editor, self._reconstructor = backend, editor, reconstructor
+
+    @contextmanager
+    def external_inference(self) -> Iterator[None]:
+        """Serialize an external backend and release cached SD GPU allocations."""
+        with self._lock:
+            import gc
+            if torch.cuda.is_initialized():
+                torch.cuda.synchronize()
+            self._editor = self._reconstructor = self._backend = None
+            gc.collect()
+            if torch.cuda.is_initialized():
+                torch.cuda.empty_cache()
+            yield
 
     def generate(self, request: GenerationRequest,
                  progress: Callable[[float, str], None] | None = None) -> GenerationDemoResult:

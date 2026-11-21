@@ -1,5 +1,11 @@
 # Diffusion-Based Image Editing
 
+**FLUX Gradio reference:** the UI now includes a separate **FLUX** page for the
+locally prepared distilled Klein 4B protected INT8 model. It supports generation
+and instruction image editing, with progress, PNG/JSON/ZIP downloads and explicit
+reference-image fitting. See [FLUX Gradio setup and verification](docs/flux-gradio.md).
+The existing custom SD1.5/DDIM tasks retain their algorithms and controls.
+
 A Computer Vision course project using pretrained Stable Diffusion 1.5 with custom
 DDIM inversion, reverse sampling, Classifier-Free Guidance (CFG), and mask-guided
 latent blending. **Phase 7 adds reproducible ablations, automatic grids/plots and

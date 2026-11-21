@@ -16,6 +16,16 @@ existing work. Explain major architectural or dependency changes before making t
 
 ## Scope and implementation constraints
 
+- User-directed FLUX Gradio integration (2026-11-19): expose the verified distilled
+  Klein 4B protected INT8 reference as a separate UI backend for generation and
+  instruction image editing. Its explicitly labelled reference script may use
+  the built-in FLUX pipeline, including when invoked by Gradio. Keep the custom
+  SD/DDIM routes unchanged. Use a separate offline runtime and the shared
+  inference lock; release cached SD components before launching a FLUX worker.
+  FLUX workers load lazily per request and exit after completion instead of
+  keeping both backends resident. Do not expose unverified FLUX masking or
+  outpainting controls. Preserve the failed all-linear INT8 evidence.
+
 - User-directed implementation priority (2026-11-18): add traditional forward-
   noising Img2Img, masked inpainting and canvas outpainting using our custom DDIM
   sampler. Follow `docs/forward-noising.md`. Keep this route separate from source

@@ -162,3 +162,16 @@ geometry, comparison/boundary views and immutable result associations. Legacy
 APIs and all numerical routes remain compatible. CPU/HTTP and independent browser
 verification are recorded in `workspace-ui.md`. This presentation change does not
 advance a research, reconstruction or semantic-acceptance gate.
+
+## User-directed FLUX Gradio integration (2026-11-19)
+
+Add a separate distilled Klein 4B protected INT8 reference page for generation
+and instruction image editing. Preserve the custom SD/DDIM routes, historical
+evidence and rejected all-linear INT8 export. Keep the FLUX environment/process
+isolated, serialize inference with SD, and release SD cache before FLUX jobs.
+
+The implementation includes explicit reference fitting, live progress, immutable
+run associations, downloadable artifacts and failed-run retention. Focused offline
+and HTTP tests plus real local browser/model verification are recorded in
+`flux-gradio.md`. This is not a semantic-acceptance result. FLUX masked editing,
+outpainting and broader precision/quality studies remain outside this deliverable.

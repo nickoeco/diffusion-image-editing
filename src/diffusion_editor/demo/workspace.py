@@ -45,13 +45,17 @@ WORKSPACE_CSS = """
 """
 
 
-def build_workspace(gr: Any, service: Any, coffee: Image.Image, coffee_mask: Image.Image) -> None:
+def build_workspace(gr: Any, service: Any, coffee: Image.Image, coffee_mask: Image.Image,
+                    *, flux_service: Any = None) -> None:
     gr.Markdown("# Diffusion Image Editor\nChoose a task. Prepare the image, describe your change, then run.", elem_id="workspace-header")
     with gr.Tabs(selected="edit", elem_id="workspace-tabs"):
         for task, label in (("generate", "Generate"), ("edit", "Edit image"),
                             ("extend", "Extend canvas"), ("diagnostics", "Diagnostics")):
             with gr.Tab(label, id=task, render_children=True):
                 _build_task(gr, service, task, coffee, coffee_mask)
+        with gr.Tab("FLUX", id="flux", render_children=True):
+            from diffusion_editor.demo.flux_app import build_flux_tab
+            build_flux_tab(gr, flux_service, coffee)
 
 
 def _build_task(gr: Any, service: Any, task: str, coffee: Image.Image, coffee_mask: Image.Image) -> None:

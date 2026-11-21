@@ -1,0 +1,16 @@
+{
+  "model_id": "black-forest-labs/FLUX.2-klein-4B",
+  "revision": "e7b7dc27f91deacad38e78976d1f2b499d76a294",
+  "bits": 8,
+  "int8_linear_layers": 100,
+  "skip_modules": [
+    "time_guidance_embed",
+    "double_stream_modulation_img",
+    "double_stream_modulation_txt",
+    "single_stream_modulation",
+    "x_embedder",
+    "context_embedder",
+    "norm_out",
+    "proj_out"
+  ]
+}

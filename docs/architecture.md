@@ -285,3 +285,23 @@ later edits mark prior results rather than relabelling them. `workspace.json`
 and optional original-upload artifacts extend workspace archives while leaving
 backend `report.json` intact. Hidden legacy forms in `app.py` / `forward_app.py`
 retain old API schemas and callbacks during migration. See `workspace-ui.md`.
+
+## Isolated FLUX Gradio reference
+
+The additional FLUX page is built by `demo/flux_app.py`. `demo/flux_service.py`
+validates its generation/instruction requests, plans explicit 16-pixel reference
+fitting, freezes inputs/configuration and starts the labelled reference script in
+a separate Python runtime. It imports no FLUX model classes into the SD process.
+JSON progress messages cross the process boundary; images and run reports are
+verified before the UI publishes downloads.
+
+`DemoService.external_inference()` owns the same lock used by all SD routes. It
+releases the cached SD backend/editor/reconstructor before the worker starts, so
+inference cannot overlap across backends. The FLUX process encodes text with its
+INT8 Qwen3 component and releases it before loading the protected INT8 Transformer.
+The process exits after each request. SD lazily reloads on the next SD operation;
+FLUX process startup/loading is included in the UI wall time.
+
+This user-directed reference backend is separate from the custom DDIM algorithms.
+It exposes no masked inpainting, outpainting or source-inversion controls. See
+`flux-gradio.md` for capabilities, environment boundaries and verification.

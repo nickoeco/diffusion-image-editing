@@ -1,0 +1,23 @@
+{
+  "LICENSE.md": "ca02bc51900ab07789d1b70283329e7137f5af98f5161c23a1c81fc38a4af1fe",
+  "protected-quantization-manifest.json": "18a46646df07dd6d7b6dae990980a50f98fa21e5b71942c028f97308c89f1c05",
+  "protected-text-encoder-export.json": "16714674aad84de4f5c88c112ce59c849107cda182e04dd4bc5a4c24241f37e9",
+  "protected-transformer-export.json": "7b822a71e34b9459c5db4ab451637c98666087dd9820cf82c79650265d972fae",
+  "protected-validation.json": "79ecbb76197fc607bfa0fa1018af572e2e58c6b8c476bd93d35eeb90a6b520e9",
+  "README.md": "20867d8d5a83319e32915b1497a042413f50bacc2a2fd2865ad079e5f2f3a3fb",
+  "rejected-quantization-manifest.json": "9d555fb7b5f5381ebf640d7510437468b9ab54abcd96d7b03c77918ed7a373a8",
+  "rejected-validation.json": "7442da58fdec245df227fbeca42a7168986daa92c4e7e3640461fc075600777c",
+  "source-manifest.json": "e748df94b9b366cd4fbb5a01ecba4b0924bb50a32cd55d6a68124bdd270a7347",
+  "runs/20261119-073056/output.png": "4b2afce6db6d47e678ef1b7338c7cc48625093922949156eb6c57ceb34a12985",
+  "runs/20261119-073056/run.json": "5651db8a524cd437756035b933ee42ac5571a109f41975358a361d8f7bc396e2",
+  "runs/20261119-074245/output.png": "825b7ccf109e023d77b0208c0cd898e923d9d88063e474076e8afe77f8d9ae30",
+  "runs/20261119-074245/run.json": "a37468bb3206d5aed1688a58e4630c9e6d520b356e715dfffdb2d630b11fdd23",
+  "runs/20261119-074610/output.png": "825b7ccf109e023d77b0208c0cd898e923d9d88063e474076e8afe77f8d9ae30",
+  "runs/20261119-074610/run.json": "1846e3d5f358b8d90c43f1e94ea817a0ab3708df042a1f21ac2937ec36b13e2b",
+  "runs/diagnostic-bf16/output.png": "d624605383fb6ac9faa6abf3c558814dade85cb194d1003606f5d3b6f95fdde5",
+  "runs/diagnostic-bf16/run.json": "30928817410d9b5067979d0102fbcb8bb07ef727bfa67850bfb48007b0d0720a",
+  "runs/diagnostic-int8-protected/attempt.json": "6ba7534a5205a71a71bf565cb487d2ad8d134790d1bad6bde1a29f7506c42bbb",
+  "runs/diagnostic-int8-text_encoder-incomplete/attempt.json": "29e16c3831e607195dcacf50df36f10135540d52c4bba6f59f1c65aca83727a1",
+  "runs/diagnostic-int8-transformer/output.png": "f4cb58a49f5008139b065dd5413329a953484830bb60c42765c829b3e4a7fb70",
+  "runs/diagnostic-int8-transformer/run.json": "ed15ce74fd8844ca8c13b628e2b1717d25a05c056d049a581071b529f48d7d70"
+}

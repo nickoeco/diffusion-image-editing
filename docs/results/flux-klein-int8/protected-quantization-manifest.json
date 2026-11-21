@@ -1,0 +1,60 @@
+{
+  "model_id": "black-forest-labs/FLUX.2-klein-4B",
+  "revision": "e7b7dc27f91deacad38e78976d1f2b499d76a294",
+  "is_distilled": true,
+  "quantization": "bitsandbytes-int8",
+  "int8_linear_layers": {
+    "transformer": 100,
+    "text_encoder": 252
+  },
+  "transformer_skip_modules": [
+    "time_guidance_embed",
+    "double_stream_modulation_img",
+    "double_stream_modulation_txt",
+    "single_stream_modulation",
+    "x_embedder",
+    "context_embedder",
+    "norm_out",
+    "proj_out"
+  ],
+  "unquantized_floating_point_dtype": "bfloat16",
+  "software": {
+    "torch": "2.11.0+cu128",
+    "diffusers": "0.40.0.dev0",
+    "transformers": "5.15.0",
+    "bitsandbytes": "0.50.1"
+  },
+  "weights": [
+    {
+      "path": "text_encoder\\model.safetensors",
+      "bytes": 4416143004,
+      "sha256": "3c257d67c5d5e6f9813f22bd2d94a762ab21906448ebc5cc29b3ad3aeb2e0f29",
+      "tensor_dtypes": {
+        "F32": 252,
+        "BF16": 146,
+        "I8": 252,
+        "U8": 252
+      }
+    },
+    {
+      "path": "transformer\\diffusion_pytorch_model.safetensors",
+      "bytes": 4074440036,
+      "sha256": "f000ba6aec43a98240b8bd881456a207b1611978ccb497a3125b3d962e5ec24d",
+      "tensor_dtypes": {
+        "F32": 100,
+        "BF16": 69,
+        "I8": 100,
+        "U8": 100
+      }
+    },
+    {
+      "path": "vae\\diffusion_pytorch_model.safetensors",
+      "bytes": 168120878,
+      "sha256": "ca70d2202afe6415bdbcb8793ba8cd99fd159cfe6192381504d6c4d3036e0f04",
+      "tensor_dtypes": {
+        "I64": 1,
+        "BF16": 250
+      }
+    }
+  ]
+}
