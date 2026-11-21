@@ -268,3 +268,20 @@ remains outside sampling and raw decoded output is retained.
 reusing `DemoService`'s single backend and lock. CLI and Gradio call the same
 service. No dependency or model download is added. Existing inference and review
 interfaces remain intact.
+
+## Task workspace presentation layer
+
+`demo/workspace.py` builds four persistent task pages with a fixed settings
+sidebar and one visible input/result work area. It owns Gradio components and
+events only. `demo/workspace_run.py` translates tasks into existing generation,
+forward-editing or inversion/reconstruction requests; it never implements model
+math. `demo/workspace_state.py` owns model-free geometry previews, requested-mask
+overlays, fixed boundary crops and input/settings fingerprints.
+
+Every page keeps independent state; all inference shares the existing service,
+model cache, lock and concurrency group. Paint surfaces remain mounted under
+CSS view changes. Completion records an immutable run/settings/output association;
+later edits mark prior results rather than relabelling them. `workspace.json`
+and optional original-upload artifacts extend workspace archives while leaving
+backend `report.json` intact. Hidden legacy forms in `app.py` / `forward_app.py`
+retain old API schemas and callbacks during migration. See `workspace-ui.md`.

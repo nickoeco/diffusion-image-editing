@@ -72,7 +72,8 @@ or permitting overlap/feathering changes that guarantee.
 The core pipeline uses the VAE's configured spatial factor and channel count.
 Demo/CLI target the cached SD 1.5 model: final dimensions must be divisible by8,
 at most1024 per side, source sides at least8. No silent image fitting is applied
-in the new forward-noising tabs. Legacy inversion forms retain their fitting controls.
+in the core or compatibility forms. The task workspace offers explicit optional
+image fitting before mask creation, with the resulting dimensions shown first.
 No reference image exists for the new borders: initialized-canvas PSNR/SSIM are
 labelled preservation diagnostics, not outpainting quality or seam scores.
 
@@ -84,12 +85,15 @@ Start the shared offline model demo from the repository root:
 .\.venv\Scripts\python.exe -m diffusion_editor.demo.app --port 7862
 ```
 
-Open `http://127.0.0.1:7862` and choose **Img2Img (noise)**,
-**Inpainting (noise)** or **Outpainting (noise)**. All existing named APIs remain
-compatible. Inpainting accepts aligned grayscale uploads or paint-layer alpha.
-Each form retains independent state; all share one model cache and inference
-lock. Outpainting exposes numeric margins, initialization and editable overlap.
-No weights load on navigation. Source changes clear that form's masks/results.
+Open `http://127.0.0.1:7862` and choose **Edit image** (Whole image / Selected
+region) or **Extend canvas**. Forward noising is the default editing method.
+All existing named APIs remain compatible. Selected-region editing supports aligned
+grayscale uploads and RGBA paint alpha on one visible work surface; painting and
+active mask persist across task switches. Changing the source or explicit fitting
+clears both masks and marks retained results as previous runs. Canvas extension
+previews dimensions, margins and overlap before execution. All tasks reuse one
+model cache, service lock and queue; navigation loads no weights. See
+[workspace-ui.md](workspace-ui.md).
 
 CLI examples are in the README. The same service is available through Python:
 

@@ -152,3 +152,13 @@ independent pixel compositing, three persistent UI tabs, a CLI and reproducible
 downloads. Historical-input smokes demonstrate execution and preserved zero-mask
 pixels, with explicit geometry/seam failures. The semantic and holdout acceptance
 gates remain open. See `forward-noising.md` for current implementation evidence.
+
+## Approved interface redesign
+
+The seven peer forms are consolidated into four task entries: Generate, Edit
+image, Extend canvas and Diagnostics. The implementation adds a fixed settings
+sidebar, one visible mask/input work area, explicit preparation, live outpaint
+geometry, comparison/boundary views and immutable result associations. Legacy
+APIs and all numerical routes remain compatible. CPU/HTTP and independent browser
+verification are recorded in `workspace-ui.md`. This presentation change does not
+advance a research, reconstruction or semantic-acceptance gate.

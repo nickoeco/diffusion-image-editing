@@ -15,18 +15,22 @@ def test_persistent_independent_tabs(generation_service):
     app = create_app(service=generation_service)
     components = app.config["components"]
     tabs = [c for c in components if c["type"] == "tabitem"]
-    assert [c["props"]["label"] for c in tabs] == ["Text to image", "Local edit", "Global edit", "Reconstruction",
+    assert [c["props"]["label"] for c in tabs] == ["Generate", "Edit image", "Extend canvas", "Diagnostics",
+                                                   "Text to image", "Local edit", "Global edit", "Reconstruction",
                                                    "Img2Img (noise)", "Inpainting (noise)", "Outpainting (noise)"]
     assert all(c["props"]["render_children"] for c in tabs)
     navigation = next(c for c in components if c["type"] == "tabs")
-    assert navigation["props"]["selected"] == "local"
-    assert sum(c["type"] == "imageeditor" for c in components) == 1
+    assert navigation["props"]["selected"] == "edit"
+    compatibility = next(c for c in components if c["props"].get("elem_id") == "generation-tabs")
+    assert compatibility["props"]["visible"] is False
+    assert sum(c["type"] == "imageeditor" for c in components) == 3
     operations = [c for c in components if c["props"].get("label") == "Operation"]
     assert [c["props"]["value"] for c in operations] == ["Local edit", "Global edit", "Reconstruct source"]
     assert all(c["props"]["visible"] is False for c in operations)
     ids = [c["props"]["elem_id"] for c in components if c["props"].get("elem_id")]
     assert len(ids) == len(set(ids))
     assert {"local-mask-panel", "global-target-prompt", "reconstruction-target-prompt"} <= set(ids)
+    assert {"workspace-edit-paint", "workspace-extend-input-preview", "workspace-edit-badge"} <= set(ids)
     assert not generation_service.load_calls
 
 

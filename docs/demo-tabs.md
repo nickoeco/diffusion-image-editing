@@ -1,6 +1,20 @@
-# Demo operation tabs
+# Demo navigation
 
-The main demo has seven persistent tabs. The original four replaced the visible
+The current interface has four task entries: **Generate**, **Edit image**,
+**Extend canvas** and **Diagnostics**. Edit image combines whole-image and selected-
+region editing, with forward noising as its default method and DDIM inversion
+under Advanced settings. See [workspace-ui.md](workspace-ui.md) for the current
+layout, state/provenance contract and validation. The seven existing named run
+APIs and their upload/fitting callbacks retain their parameter/output order in
+hidden compatibility forms backed by the same service/cache/lock.
+
+The sections below preserve historical layout and execution evidence. Their
+seven-tab descriptions and result-reset rules apply to the compatibility forms,
+not the new task workspace.
+
+## Historical seven-tab layout
+
+Before the task-first redesign, the main demo had seven persistent tabs. The original four replaced the visible
 operation radio and separate txt2img accordion; three forward-noising tabs were
 subsequently added at the user's request:
 

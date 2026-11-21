@@ -568,3 +568,25 @@ Outpainted borders have no ground truth; initialized-canvas preservation scores
 are explicitly not generated-content quality scores. Retained-source and fixed
 requested-mask metrics are separate from effective-mask metrics. See
 `forward-noising.md` for executable examples and measured validation.
+
+## Task-first workspace UI
+
+The visible demo now has Generate, Edit image, Extend canvas and Diagnostics.
+Forward noising is the editing default; DDIM inversion and its source prompt are
+advanced options. A 340 px settings sidebar keeps Run outside its scrollable
+controls. The work area switches between input/mask, result, draggable comparison
+and a fixed requested-mask boundary crop without recreating paint components.
+
+Explicit optional image fitting shares the established coordinate transform;
+source/fitting changes clear both masks before further painting. Live outpaint
+previews validate final geometry and show new-area/overlap weights. Model-free
+preview tests compare source placement and weights to the actual canvas helper.
+Independent latent guidance and final pixel compositing remain explicit controls.
+
+`workspace_run.py` routes requests to the existing shared service and records a
+separate `workspace.json` association in the ZIP, including the submitted settings
+fingerprint, prompts, run ID and output hash. Fitted runs retain the original
+upload. Backend reports remain intact. Control changes label prior outputs as
+stale; failures preserve successful images/downloads. Only selected diagnostic
+branches execute. Hidden compatibility adapters retain old API signatures and
+result ordering. See `workspace-ui.md` for UI/browser evidence and limitations.

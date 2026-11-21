@@ -381,43 +381,34 @@ first run. Later runs reuse them; inference is serialized. Stop with Ctrl+C.
 Use `--port 7861`, `--config configs/default.yaml` or `--output-dir outputs/demo`
 to override launch settings. No weights download automatically.
 
-1. Click **Upload custom image** or load the included coffee example. **Automatically
-   resize and pad** defaults on: long edges above 1024 shrink proportionally, then
-   right/bottom edge padding makes both dimensions multiples of 8. Smaller images
-   are not enlarged and content is not cropped. **Image sizing** shows original,
-   content and canvas/output sizes. Outputs retain this fitted canvas size.
-   Disable fitting for strict input validation; around 512 pixels per side is
-   recommended. Core pipeline/experiment APIs retain their strict size contracts.
-2. Choose Local edit, Global edit or Reconstruct source, then select **Outputs to
-   calculate**. Editing defaults to Edited image only; Reconstruct source defaults
-   to DDIM reconstruction. VAE reconstruction, DDIM reconstruction and source-prompt
-   control are independently selectable where applicable. Unselected branches are
-   skipped, and at least one output is required. Set the relevant prompts/parameters.
-3. For local editing, choose **Upload** for a grayscale mask aligned to the original
-   upload, resized content or shown canvas, or **Draw** on the fitted image.
-   Image and mask share the same transform; entered mask padding is zero.
-   White/painted regions edit. Mask controls are hidden
-   for Global edit, Reconstruct source and reconstruction-only output selections.
-   CSS retains the initialized canvas while hiding the panel, so switching back
-   preserves usable paint tools; the unused mask is ignored.
-   Brush, erase, undo and clear controls are available. Changing the original
-   or toggling automatic fitting clears uploaded masks, painting and old results
-   to prevent stale alignment. Unrelated mask sizes are rejected.
-4. Feathering, latent blending and original-background pixel compositing are
-   independent controls. Select DDIM reconstruction to calculate full source
-   reconstruction; advanced settings control residual correction and decoded-latent
-   previews. Full reconstruction uses guidance
-   1 independently of editing guidance and is slower with residual correction.
-5. Run and inspect the original and selected outputs. VAE-only requests perform
-   no diffusion; Edit-only requests skip the source control, full DDIM reconstruction
-   and separate VAE baseline decode. Download the result PNG or ZIP
-   containing images, prompts/settings, JSON/CSV metrics and environment/timings.
+1. Choose **Generate**, **Edit image**, **Extend canvas** or **Diagnostics**.
+   Each task retains independent inputs/results. Edit image defaults to forward
+   noising; choose Whole image or Selected region, then enter a target prompt.
+2. Upload an image or use the coffee example. Source/canvas dimensions appear
+   before painting. Advanced settings provide explicit optional shrinking/padding;
+   fitting defaults off. Enabling it clears both masks. It never crops or upscales
+   content. Final model dimensions must be divisible by 8 and at most 1024 per side.
+3. Selected-region editing uses one visible work surface: Upload displays the
+   aligned grayscale mask as a cyan overlay; Draw activates the paint editor.
+   Only the active mask is used. Changing the image or fitting clears both masks;
+   changing tasks or mask mode retains paint layers and tools.
+4. Strength is a basic control. Steps, CFG, seed, negative prompt, mask feathering
+   and the independent latent guidance / final pixel compositing switches live
+   under Advanced settings. DDIM inversion is an explicit editing-method option
+   that reveals the source prompt. Diagnostics calculates only selected VAE,
+   DDIM reconstruction or source-prompt controls.
+5. Run and inspect **Result**, draggable **Compare** or **Boundary** zoom. Extend
+   canvas previews dimensions, source placement, new area and editable overlap
+   without resizing the source. Details retain literal prompts, actual requests,
+   requested/effective masks and reports. Download PNG or the image/JSON/CSV ZIP.
+   Changed settings mark the previous result; failed runs retain successful results.
 
 Artifacts use isolated directories under `outputs/demo/<run-id>/`. The report
 separates loading time from pipeline compute time; compute excludes metrics,
 preview decoding, image saving and archive creation. PSNR/SSIM measure preservation,
-not prompt alignment. Seed is recorded, but deterministic inversion adds no random
-noise, so changing it alone need not change the image. Data and cached weights stay
+not prompt alignment. Forward noising uses seeded noise; deterministic inversion
+adds no random edit noise. Workspace runs also save a `workspace.json` association
+manifest in the archive; backend `report.json` remains intact. Data and cached weights stay
 on the local server. This demo has no authentication and is intended for local use.
 
 HTTP checks require local sockets and are a separate opt-in from offline tests:
@@ -520,25 +511,12 @@ authorized fixed-revision download. Background/material changes remain, so this 
 evidence for another editing route, not a twelve-case acceptance pass or a change
 to the custom DDIM pipeline.
 
-## Text-to-image interface
-
-The [workspace integration review](docs/workspace-integration-review.md) explains
-which acceptance tools are retained, why the human review demo stays separate,
-and which experimental/reference methods remain outside production defaults.
-
-The demo offers four tabs: **Text to image**, **Local edit**, **Global edit** and
-**Reconstruction**, each retaining its own inputs and results. The txt2img tab and
-`/txt2img` API support prompt/negative prompt, dimensions, steps, CFG, seed, generated
-image and PNG/ZIP downloads. It uses our custom DDIM sampler and cached components,
-without an original image, mask or inversion. Restart the demo process to load
-the new layout. See [usage, API and verification limits](docs/txt2img-demo.md)
-and [tab behavior and browser validation](docs/demo-tabs.md).
-
 ## Forward-noising Img2Img, inpainting and outpainting
 
 The user-directed traditional route is implemented separately from DDIM inversion.
-The demo adds **Img2Img (noise)**, **Inpainting (noise)** and
-**Outpainting (noise)** tabs, sharing the offline model cache and queue.
+The demo exposes Img2Img and inpainting through **Edit image** (Whole image /
+Selected region), and outpainting through **Extend canvas**, sharing one offline
+model cache and queue. Forward noising is the default editing method.
 No built-in editing pipeline or new checkpoint is used. All three use our manual
 CFG and eta=0 sampler after explicit seeded forward noising of VAE posterior-mode
 latents. See [the equations, usage and validation](docs/forward-noising.md).
@@ -559,3 +537,19 @@ decoded and chosen compositing still applies. This is four-channel base-model
 masked sampling, not a specialized nine-channel inpainting checkpoint. Seams and
 geometry/semantic failures remain possible; [measured smoke examples](docs/results/forward-noising/README.md)
 are not holdout acceptance results.
+
+## Text-to-image interface
+
+The [workspace integration review](docs/workspace-integration-review.md) explains
+which acceptance tools are retained, why the human review demo stays separate,
+and which experimental/reference methods remain outside production defaults.
+
+The current four tasks are **Generate**, **Edit image**, **Extend canvas** and
+**Diagnostics**. Each retains its own inputs and results. Generate and the
+`/txt2img` API support prompt/negative prompt, dimensions, steps, CFG, seed, generated
+image and PNG/ZIP downloads. It uses our custom DDIM sampler and cached components,
+without an original image, mask or inversion. Restart the demo process to load
+the new layout. See [usage, API and verification limits](docs/txt2img-demo.md)
+and [workspace behavior and validation](docs/workspace-ui.md). The previous named
+APIs remain compatible, including all three `/forward_*` routes; compatibility
+forms are hidden from the visible navigation.

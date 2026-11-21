@@ -213,10 +213,13 @@ def create_app(config: ProjectConfig | None = None, output_dir: str | Path = "ou
         example.click(load_example, outputs=[original, uploaded, drawing, source, target, mode, mask_source,
                       selected_outputs, visibility_style, auto_fit, input_state, size_info] + outputs, queue=False, api_name=False)
 
-    with gr.Blocks(title="Diffusion Image Editor", analytics_enabled=False) as demo:
-        gr.Markdown("# Diffusion Image Editor\nChoose a tab for text generation, local/global editing or reconstruction. "
-                    "Each tab retains its own inputs and results. Images can be automatically fitted without cropping.")
-        with gr.Tabs(selected="local", elem_id="generation-tabs"):
+    from diffusion_editor.demo.workspace import WORKSPACE_CSS, build_workspace
+    with gr.Blocks(title="Diffusion Image Editor", analytics_enabled=False, css=WORKSPACE_CSS,
+                   theme=gr.themes.Soft(primary_hue="cyan", neutral_hue="slate")) as demo:
+        build_workspace(gr, service, coffee, coffee_mask)
+        # Keep the established API adapters and their parameter/output order. They
+        # share the same service/lock, but do not appear in task navigation.
+        with gr.Tabs(selected="local", elem_id="generation-tabs", visible=False):
             with gr.Tab("Text to image", id="txt2img", render_children=True):
                 gr.Markdown("Generate from a prompt without an input image or mask. Uses our custom DDIM sampler and CFG with the cached model.")
                 generation_prompt = gr.Textbox(label="Generation prompt", value="a red apple on a wooden table", lines=2)

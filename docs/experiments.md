@@ -414,3 +414,23 @@ cup geometry and the outpainting texture seam are retained in the examples.
 No new twelve-case or holdout study, human rating, or broad quality claim is made.
 See [forward-noising.md](forward-noising.md) and the
 [portable smoke examples](results/forward-noising/README.md).
+
+## Task workspace regression checks
+
+The approved interface redesign changes task presentation and state/provenance
+handling, with no sampling or model change. The complete offline + opt-in HTTP
+suite passed **339 tests, 24 skipped**, with 19 existing Gradio/Starlette HTTP-422
+deprecation warnings in 60.17 s. Cached-weight/GPU integration checks were not
+enabled for this UI change. The 26 new workspace checks cover route separation,
+exact floor/ceil display, source/paint fingerprints, explicit fitting/alignment,
+canvas preview parity, fixed boundary crops, archived run associations, upload
+preflight, failed-run retention and guarded paint-reference synchronization.
+After the last canvas synchronization correction, the focused UI/input/legacy
+HTTP suite passed **112 tests, 3 skipped**, with 19 existing deprecation warnings
+in 46.30 s. The browser also confirmed a completed painted-mask run accurately
+matched its current settings after a programmatic source reset.
+
+Browser validation uses a separate synthetic CPU service on port 7864, never a
+real acceptance table. Its artifacts/screenshots are UI/lifecycle evidence only;
+see `workspace-ui.md`. Prior real-model examples and all unsuccessful semantic
+outcomes remain preserved; no metric or semantic improvement is claimed.
